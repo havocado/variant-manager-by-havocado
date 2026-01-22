@@ -2,10 +2,7 @@
 Variant Manager by havocado - USD Variant Inspector Panel for Houdini
 Designed to match Houdini's parameter pane and Scene Graph Tree conventions
 """
-try:
-    from PySide6 import QtWidgets, QtCore, QtGui
-except ImportError:
-    from PySide2 import QtWidgets, QtCore, QtGui
+from PySide6 import QtWidgets, QtCore, QtGui
 
 # Houdini imports - gracefully handle when running outside Houdini
 try:
@@ -316,10 +313,16 @@ class VariantManagerPanel(QtWidgets.QWidget):
         self.inspector_tab.set_source_lop_node_callback(self._get_current_lop_node)
         self.inspector_tab.nodeCreated.connect(self._on_node_created)
         self.tab_widget.addTab(self.inspector_tab, "⚙️ Inspector")
-        
+
         # Comparison Tab
         self.comparison_tab = ComparisonTab()
         self.tab_widget.addTab(self.comparison_tab, "Comparison")
+
+        # Initialize comparison tab with current LOP node if inspector tab has one
+        if hasattr(self.inspector_tab, '_lop_node') and self.inspector_tab._lop_node:
+            self.comparison_tab.set_lop_node(self.inspector_tab._lop_node)
+            if hasattr(self.inspector_tab, '_stage') and self.inspector_tab._stage:
+                self.comparison_tab.set_stage(self.inspector_tab._stage)
         
         # Analysis Tab
         self.analysis_tab = AnalysisTab()
@@ -441,11 +444,20 @@ class VariantManagerPanel(QtWidgets.QWidget):
         else:
             self.selection_label.setText("0 prims")
 
+        # Get the current LOP node for thumbnail generation
+        lop_node = self._get_current_lop_node()
+        print(f"[VariantManager] _on_stage_changed: stage={stage}, lop_node={lop_node}")
+
         # Notify tabs - they should implement set_stage() method
         if hasattr(self.inspector_tab, 'set_stage'):
             self.inspector_tab.set_stage(stage)
         if hasattr(self.comparison_tab, 'set_stage'):
             self.comparison_tab.set_stage(stage)
+        if hasattr(self.comparison_tab, 'set_lop_node'):
+            print(f"[VariantManager] Calling comparison_tab.set_lop_node with: {lop_node}")
+            self.comparison_tab.set_lop_node(lop_node)
+        else:
+            print(f"[VariantManager] comparison_tab does not have set_lop_node method")
         if hasattr(self.analysis_tab, 'set_stage'):
             self.analysis_tab.set_stage(stage)
     
@@ -503,7 +515,7 @@ class VariantManagerPanel(QtWidgets.QWidget):
         # Refresh node list to include the new node
         self._refresh_node_list()
 
-        # Select the new node
+        # Select the new node (this will trigger _on_stage_changed which updates comparison tab)
         self.lop_selector.select_node(node_path)
 
     def _on_prim_path_changed(self, prim_path):

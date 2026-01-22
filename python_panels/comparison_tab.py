@@ -5,6 +5,13 @@ from PySide6 import QtWidgets, QtCore, QtGui
 
 from widgets import ComparisonPanelWidget
 
+try:
+    from thumbnail import ThumbnailManager
+    THUMBNAIL_AVAILABLE = True
+except ImportError:
+    ThumbnailManager = None
+    THUMBNAIL_AVAILABLE = False
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # COMPARISON TAB
@@ -20,6 +27,9 @@ class ComparisonTab(QtWidgets.QWidget):
         self._current_view_mode = "Side-by-Side"
         self._stage = None
         self._current_prim = None
+        self._current_variant_set = None  # Track current variant set name
+        self._lop_node = None  # LOP node for thumbnail generation
+        self._thumbnail_manager = None  # Will be initialized when LOP node is set
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
@@ -60,6 +70,18 @@ class ComparisonTab(QtWidgets.QWidget):
         controls_layout.addWidget(self.variant_set_combo)
 
         controls_layout.addStretch()
+
+        # Separator
+        sep2 = QtWidgets.QFrame()
+        sep2.setFrameShape(QtWidgets.QFrame.VLine)
+        controls_layout.addWidget(sep2)
+
+        # Create Thumbnails button
+        self.create_thumbnails_btn = QtWidgets.QPushButton("Create Thumbnails from Current Viewport")
+        self.create_thumbnails_btn.setEnabled(False)
+        self.create_thumbnails_btn.setToolTip("Generate thumbnails for all variants using the current viewport camera")
+        self.create_thumbnails_btn.clicked.connect(self._on_create_thumbnails_clicked)
+        controls_layout.addWidget(self.create_thumbnails_btn)
         
         layout.addWidget(controls_bar)
 
@@ -153,6 +175,35 @@ class ComparisonTab(QtWidgets.QWidget):
         self._stage = stage
         self._refresh_from_stage()
 
+    def set_lop_node(self, lop_node):
+        """
+        Set the LOP node for thumbnail generation.
+
+        Args:
+            lop_node: A hou.LopNode object or None
+        """
+        self._lop_node = lop_node
+
+        # Clean up existing thumbnail manager
+        if self._thumbnail_manager:
+            try:
+                self._thumbnail_manager.cleanup()
+            except:
+                pass
+            self._thumbnail_manager = None
+
+        # Initialize new thumbnail manager if we have a LOP node
+        if lop_node and THUMBNAIL_AVAILABLE:
+            try:
+                self._thumbnail_manager = ThumbnailManager(lop_node, parent=self)
+                self._thumbnail_manager.thumbnail_ready.connect(self._on_thumbnail_ready)
+                self._thumbnail_manager.generation_failed.connect(self._on_thumbnail_failed)
+            except Exception as e:
+                print(f"Failed to initialize thumbnail manager: {e}")
+                import traceback
+                traceback.print_exc()
+                self._thumbnail_manager = None
+
     def _refresh_from_stage(self):
         """
         Refresh the comparison panels from the current stage.
@@ -230,6 +281,9 @@ class ComparisonTab(QtWidgets.QWidget):
             self._clear_panels()
             return
 
+        # Store current variant set name
+        self._current_variant_set = variant_set_name
+
         # Get all variants for the selected variant set
         variant_sets = self._current_prim.GetVariantSets()
         variant_set = variant_sets.GetVariantSet(variant_set_name)
@@ -248,10 +302,16 @@ class ComparisonTab(QtWidgets.QWidget):
         # Create a panel for each variant
         for variant_name in variant_names:
             panel = ComparisonPanelWidget(variant_name)
+            panel.set_loading()  # Show loading state initially
             self._panels.append(panel)
 
         # Re-layout panels according to current view mode
         self._reorganize_panels()
+
+        # Enable the create thumbnails button if we have panels and a thumbnail manager
+        self.create_thumbnails_btn.setEnabled(
+            len(self._panels) > 0 and self._thumbnail_manager is not None
+        )
 
     def _clear_panels(self):
         """Remove all comparison panels."""
@@ -263,3 +323,58 @@ class ComparisonTab(QtWidgets.QWidget):
 
         # Clear panels list
         self._panels = []
+
+        # Disable the create thumbnails button
+        self.create_thumbnails_btn.setEnabled(False)
+
+    def _on_create_thumbnails_clicked(self):
+        """Handle the 'Create Thumbnails' button click."""
+        self._request_all_thumbnails()
+
+    def _request_all_thumbnails(self):
+        """Request thumbnails for all panels."""
+        if not self._thumbnail_manager or not self._current_prim or not self._current_variant_set:
+            return
+
+        prim_path = str(self._current_prim.GetPath())
+
+        # Get variant set to retrieve variant names
+        variant_sets = self._current_prim.GetVariantSets()
+        variant_set = variant_sets.GetVariantSet(self._current_variant_set)
+
+        if not variant_set:
+            return
+
+        variant_names = variant_set.GetVariantNames()
+
+        # Request thumbnails for all panels
+        for index, variant_name in enumerate(variant_names):
+            self._thumbnail_manager.request_thumbnail(
+                index,
+                prim_path,
+                self._current_variant_set,
+                variant_name
+            )
+
+    def _on_thumbnail_ready(self, index, pixmap):
+        """
+        Callback when a thumbnail is ready.
+
+        Args:
+            index: Panel index
+            pixmap: QPixmap of the thumbnail
+        """
+        if index < len(self._panels):
+            self._panels[index].set_thumbnail(pixmap)
+
+    def _on_thumbnail_failed(self, index, error_message):
+        """
+        Callback when thumbnail generation fails.
+
+        Args:
+            index: Panel index
+            error_message: Error description
+        """
+        if index < len(self._panels):
+            self._panels[index].set_failed()
+            print(f"Thumbnail generation failed for panel {index}: {error_message}")
