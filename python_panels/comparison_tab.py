@@ -56,6 +56,7 @@ class ComparisonTab(QtWidgets.QWidget):
         self.variant_set_combo.addItem("(No variant sets)")
         self.variant_set_combo.setEnabled(False)
         self.variant_set_combo.setToolTip("Select a variant set from the current prim")
+        self.variant_set_combo.currentTextChanged.connect(self._on_variant_set_changed)
         controls_layout.addWidget(self.variant_set_combo)
 
         controls_layout.addStretch()
@@ -74,28 +75,9 @@ class ComparisonTab(QtWidgets.QWidget):
         self.grid_layout.setContentsMargins(4, 4, 4, 4)
         self.grid_layout.setSpacing(8)
 
-        # Create placeholder panels
-        panel_a = ComparisonPanelWidget("/World/Car_A", "sedan")
-        panel_a.add_variant_info("model", "sedan")
-        panel_a.add_variant_info("shade", "red", has_warning=True)
-        panel_a.add_variant_info("wheel", "sport")
-        self._panels.append(panel_a)
-
-        panel_b = ComparisonPanelWidget("/World/Car_B", "suv")
-        panel_b.add_variant_info("model", "suv")
-        panel_b.add_variant_info("shade", "blue")
-        panel_b.add_variant_info("wheel", "offroad")
-        self._panels.append(panel_b)
-
-        panel_c = ComparisonPanelWidget("/World/Car_C", "sedan")
-        panel_c.add_variant_info("model", "sedan")
-        panel_c.add_variant_info("shade", "red", has_warning=True)
-        panel_c.add_variant_info("wheel", "default")
-        self._panels.append(panel_c)
-
-        # Add panels to initial layout
-        for panel in self._panels:
-            self.grid_layout.addWidget(panel)
+        # Initially empty - panels will be created when a variant set is selected
+        # for panel in self._panels:
+        #     self.grid_layout.addWidget(panel)
 
         self.scroll.setWidget(self.grid_widget)
         layout.addWidget(self.scroll)
@@ -219,14 +201,19 @@ class ComparisonTab(QtWidgets.QWidget):
             if set_names:
                 self.variant_set_combo.addItems(set_names)
                 self.variant_set_combo.setEnabled(True)
+                self.variant_set_combo.blockSignals(False)
+                # Trigger loading of the first variant set
+                self._on_variant_set_changed(set_names[0])
             else:
                 self.variant_set_combo.addItem("(No variant sets)")
                 self.variant_set_combo.setEnabled(False)
+                self.variant_set_combo.blockSignals(False)
+                self._clear_panels()
         else:
             self.variant_set_combo.addItem("(No variant sets)")
             self.variant_set_combo.setEnabled(False)
-
-        self.variant_set_combo.blockSignals(False)
+            self.variant_set_combo.blockSignals(False)
+            self._clear_panels()
 
     def _clear_variant_sets(self):
         """Clear the variant set dropdown."""
@@ -235,3 +222,44 @@ class ComparisonTab(QtWidgets.QWidget):
         self.variant_set_combo.addItem("(No variant sets)")
         self.variant_set_combo.setEnabled(False)
         self.variant_set_combo.blockSignals(False)
+        self._clear_panels()
+
+    def _on_variant_set_changed(self, variant_set_name):
+        """Handle variant set selection change and rebuild comparison panels."""
+        if variant_set_name == "(No variant sets)" or not self._current_prim or not self._current_prim.IsValid():
+            self._clear_panels()
+            return
+
+        # Get all variants for the selected variant set
+        variant_sets = self._current_prim.GetVariantSets()
+        variant_set = variant_sets.GetVariantSet(variant_set_name)
+
+        if variant_set:
+            variant_names = variant_set.GetVariantNames()
+            self._rebuild_panels(variant_names)
+        else:
+            self._clear_panels()
+
+    def _rebuild_panels(self, variant_names):
+        """Rebuild comparison panels for the given variant names."""
+        # Clear existing panels
+        self._clear_panels()
+
+        # Create a panel for each variant
+        for variant_name in variant_names:
+            panel = ComparisonPanelWidget(variant_name)
+            self._panels.append(panel)
+
+        # Re-layout panels according to current view mode
+        self._reorganize_panels()
+
+    def _clear_panels(self):
+        """Remove all comparison panels."""
+        # Remove panels from layout
+        while self.grid_layout.count():
+            item = self.grid_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        # Clear panels list
+        self._panels = []
