@@ -14,7 +14,6 @@ except ImportError:
 
 from inspector_tab import InspectorTab
 from comparison_tab import ComparisonTab
-from analysis_tab import AnalysisTab
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -323,11 +322,7 @@ class VariantManagerPanel(QtWidgets.QWidget):
             self.comparison_tab.set_lop_node(self.inspector_tab._lop_node)
             if hasattr(self.inspector_tab, '_stage') and self.inspector_tab._stage:
                 self.comparison_tab.set_stage(self.inspector_tab._stage)
-        
-        # Analysis Tab
-        self.analysis_tab = AnalysisTab()
-        self.tab_widget.addTab(self.analysis_tab, "Analysis")
-        
+
         main_layout.addWidget(self.tab_widget)
         
         # ─────────────────────────────────────────────────────────────────────
@@ -446,7 +441,6 @@ class VariantManagerPanel(QtWidgets.QWidget):
 
         # Get the current LOP node for thumbnail generation
         lop_node = self._get_current_lop_node()
-        print(f"[VariantManager] _on_stage_changed: stage={stage}, lop_node={lop_node}")
 
         # Notify tabs - they should implement set_stage() method
         if hasattr(self.inspector_tab, 'set_stage'):
@@ -454,12 +448,7 @@ class VariantManagerPanel(QtWidgets.QWidget):
         if hasattr(self.comparison_tab, 'set_stage'):
             self.comparison_tab.set_stage(stage)
         if hasattr(self.comparison_tab, 'set_lop_node'):
-            print(f"[VariantManager] Calling comparison_tab.set_lop_node with: {lop_node}")
             self.comparison_tab.set_lop_node(lop_node)
-        else:
-            print(f"[VariantManager] comparison_tab does not have set_lop_node method")
-        if hasattr(self.analysis_tab, 'set_stage'):
-            self.analysis_tab.set_stage(stage)
     
     def _on_nodes_updated(self, node_paths):
         """Handle node list update."""

@@ -217,16 +217,8 @@ class ComparisonPanelWidget(QtWidgets.QFrame):
         controls_layout.addWidget(focus_btn)
         
         controls_layout.addStretch()
-        
+
         layout.addWidget(controls)
-        
-        # Collapsible variants section
-        variants_folder = CollapsibleFolder("Variants", expanded=True)
-        variants_folder.content_layout.setContentsMargins(8, 4, 4, 4)
-        
-        layout.addWidget(variants_folder)
-        
-        self.variants_folder = variants_folder
 
     def set_variant_name(self, variant_name):
         """Update the variant name displayed in the panel"""
@@ -261,27 +253,3 @@ class ComparisonPanelWidget(QtWidgets.QFrame):
         """Show failed state for thumbnail."""
         self.thumbnail_label.clear()
         self.thumbnail_label.setText("[Failed]")
-
-    def clear_variant_info(self):
-        """Clear all variant information from the panel"""
-        self.variants_folder.clear_widgets()
-
-    def add_variant_info(self, name, value, has_warning=False):
-        row = QtWidgets.QWidget()
-        row_layout = QtWidgets.QHBoxLayout(row)
-        row_layout.setContentsMargins(0, 0, 0, 0)
-        row_layout.setSpacing(4)
-        
-        name_label = QtWidgets.QLabel(f"{name}:")
-        row_layout.addWidget(name_label)
-        
-        value_label = QtWidgets.QLabel(value)
-        row_layout.addWidget(value_label)
-        
-        if has_warning:
-            warn_label = QtWidgets.QLabel("⚠️")
-            row_layout.addWidget(warn_label)
-        
-        row_layout.addStretch()
-        
-        self.variants_folder.add_widget(row)
