@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pythonPanelDocument>
+  <!-- This file contains definitions of Python interfaces and the
+ interfaces menu.  It should not be hand-edited when it is being
+ used by the application.  Note, that two definitions of the
+ same interface or of the interfaces menu are not allowed
+ in a single file. -->
+  <interface name="interface1" label="New Python Interface" icon="MISC_python" showNetworkNavigationBar="false" help_url="">
+    <script><![CDATA[########################################################################
+# Replace the sample code below with your own to create a
+# PySide interface.  Your code must define an
+# onCreateInterface() function that returns the root widget of
+# your interface.
+#
+# The 'hutil.PySide' is for internal-use only.
+#
+# When developing your own Python Panel, import directly from PySide
+# instead of from 'hutil.PySide'.
+########################################################################
+
+#
+# SAMPLE CODE
+#
+from hutil.PySide import QtWidgets
+
+def onCreateInterface():
+    widget = QtWidgets.QLabel('Hello World!')
+    return widget
+]]></script>
+    <includeInToolbarMenu menu_position="208" create_separator="false"/>
+    <help><![CDATA[]]></help>
+  </interface>
+  <interface name="interface2" label="New Python Interface" icon="MISC_python" showNetworkNavigationBar="false" help_url="">
+    <script><![CDATA[########################################################################
+# Replace the sample code below with your own to create a
+# PySide interface.  Your code must define an
+# onCreateInterface() function that returns the root widget of
+# your interface.
+#
+# The 'hutil.PySide' is for internal-use only.
+#
+# When developing your own Python Panel, import directly from PySide
+# instead of from 'hutil.PySide'.
+########################################################################
+
+#
+# SAMPLE CODE
+#
+from hutil.PySide import QtWidgets
+
+def onCreateInterface():
+    widget = QtWidgets.QLabel('Hello World!')
+    return widget
+]]></script>
+    <includeInToolbarMenu menu_position="209" create_separator="false"/>
+    <help><![CDATA[]]></help>
+  </interface>
+  <interface name="variant_manager_by_havocado" label="Variant Manager by havocado" icon="MISC_python" showNetworkNavigationBar="false" help_url="">
+    <script><![CDATA[
+# Import from the same directory
+import sys
+import os
+import hou
+
+# Add current directory to Python path
+# Note: __file__ is not defined in Houdini Python panels, so we use hou.findFile()
+try:
+    panel_file = hou.findFile("python_panels/variant_manager_by_havocado.pypanel")
+    panel_dir = os.path.dirname(panel_file)
+except hou.OperationFailed:
+    # Fallback: try to find the .py file directly
+    panel_dir = os.path.dirname(hou.findFile("python_panels/variant_manager_by_havocado.py"))
+
+if panel_dir not in sys.path:
+    sys.path.insert(0, panel_dir)
+
+# Import the panel
+from variant_manager_by_havocado import createInterface
+
+def onCreateInterface():
+    return createInterface()
+        ]]></script>
+    <includeInToolbarMenu menu_position="100" create_separator="false"/>
+    <help><![CDATA[
+Variant Manager by havocado - A PySide2 panel for USD variant management in Houdini.
+        ]]></help>
+  </interface>
+</pythonPanelDocument>

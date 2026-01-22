@@ -1,0 +1,13 @@
+{
+	"name": "variant-manager-by-havocado",
+	"version": "1.0.0",
+	"description": "USD Variant Manager by havocado",
+	"author": "Hailey Ahn",
+	"enable": true,
+	"env": [
+		{
+			"VARIANT_MANAGER": "path/to/variant-manager-by-havocado"
+		}
+	],
+	"path": "$VARIANT_MANAGER"
+}
