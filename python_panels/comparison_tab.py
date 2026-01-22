@@ -39,27 +39,20 @@ class ComparisonTab(QtWidgets.QWidget):
         self.view_combo.addItems(["Side-by-Side", "2x2 Grid", "3x3 Grid", "Vertical Stack"])
         self.view_combo.currentTextChanged.connect(self._on_view_mode_changed)
         controls_layout.addWidget(self.view_combo)
-        
+
         # Separator
         sep1 = QtWidgets.QFrame()
         sep1.setFrameShape(QtWidgets.QFrame.VLine)
         controls_layout.addWidget(sep1)
-        
-        # Sync options
-        sync_label = QtWidgets.QLabel("Sync:")
-        controls_layout.addWidget(sync_label)
-        
-        camera_check = QtWidgets.QCheckBox("Camera")
-        camera_check.setChecked(True)
-        controls_layout.addWidget(camera_check)
-        
-        frame_check = QtWidgets.QCheckBox("Frame")
-        frame_check.setChecked(True)
-        controls_layout.addWidget(frame_check)
-        
-        shading_check = QtWidgets.QCheckBox("Shading")
-        controls_layout.addWidget(shading_check)
-        
+
+        # Prim path display
+        prim_path_label = QtWidgets.QLabel("Prim:")
+        controls_layout.addWidget(prim_path_label)
+
+        self.prim_path_display = QtWidgets.QLabel("(Select a prim from the Inspector tab)")
+        self.prim_path_display.setStyleSheet("color: gray; font-style: italic;")
+        controls_layout.addWidget(self.prim_path_display)
+
         controls_layout.addStretch()
         
         # Settings
@@ -172,13 +165,13 @@ class ComparisonTab(QtWidgets.QWidget):
     def set_stage(self, stage):
         """
         Set the USD stage for comparison view.
-        
+
         Args:
             stage: A Usd.Stage object or None
         """
         self._stage = stage
         self._refresh_from_stage()
-    
+
     def _refresh_from_stage(self):
         """
         Refresh the comparison panels from the current stage.
@@ -186,6 +179,21 @@ class ComparisonTab(QtWidgets.QWidget):
         """
         if not hasattr(self, '_stage') or self._stage is None:
             return
-        
+
         # TODO: Create comparison panels for selected prims with variants
         pass
+
+    def set_prim_path(self, prim_path):
+        """
+        Set the prim path to display in the comparison tab.
+        Called when the user selects a prim in the Inspector tab.
+
+        Args:
+            prim_path: The USD prim path string, or empty string for no selection
+        """
+        if prim_path:
+            self.prim_path_display.setText(prim_path)
+            self.prim_path_display.setStyleSheet("color: white; font-style: normal;")
+        else:
+            self.prim_path_display.setText("(Select a prim from the Inspector tab)")
+            self.prim_path_display.setStyleSheet("color: gray; font-style: italic;")

@@ -42,10 +42,13 @@ def highlight_prims_in_viewport(prim_paths):
 
 class InspectorTab(QtWidgets.QWidget):
     """Inspector tab with split pane layout"""
-    
+
     # Define signal to be emitted when a new node is created, with the new node's path
     # For example: when a "Set Variant" node is created from this tab
     nodeCreated = QtCore.Signal(str)
+
+    # Signal emitted when the selected prim path changes (or selection is cleared)
+    primPathChanged = QtCore.Signal(str)
     
     def __init__(self, parent=None):
         super(InspectorTab, self).__init__(parent)
@@ -420,11 +423,11 @@ class InspectorTab(QtWidgets.QWidget):
     def _on_selection_changed(self):
         """Handle selection change in variant tree"""
         selected = self.variant_tree.selectedItems()
-        
+
         # Filter to only items with variant data (not intermediate nodes)
         variant_items = [item for item in selected if item.data(0, QtCore.Qt.UserRole) is not None]
         count = len(variant_items)
-        
+
         # Collect prim paths for viewport selection
         prim_paths = []
         for item in selected:
@@ -437,17 +440,21 @@ class InspectorTab(QtWidgets.QWidget):
                     if tree_item is item:
                         prim_paths.append(path)
                         break
-        
+
         # Highlight selected prims in viewport
         if prim_paths:
             highlight_prims_in_viewport(prim_paths)
-        
+
         # Update right pane with selected prim details
         if count == 1:
             prim_data = variant_items[0].data(0, QtCore.Qt.UserRole)
             self._update_details_pane(prim_data)
+            # Emit signal with the selected prim path
+            self.primPathChanged.emit(prim_data["path"])
         else: #count == 0
             self._clear_details_pane()
+            # Emit empty string when no selection
+            self.primPathChanged.emit("")
     
     def _get_selected_paths(self):
         """Get the list of currently selected prim paths."""
