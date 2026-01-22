@@ -18,6 +18,8 @@ class ComparisonTab(QtWidgets.QWidget):
 
         self._panels = []  # Store panel widgets for reordering
         self._current_view_mode = "Side-by-Side"
+        self._stage = None
+        self._current_prim = None
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
@@ -45,21 +47,18 @@ class ComparisonTab(QtWidgets.QWidget):
         sep1.setFrameShape(QtWidgets.QFrame.VLine)
         controls_layout.addWidget(sep1)
 
-        # Prim path display
-        prim_path_label = QtWidgets.QLabel("Prim:")
-        controls_layout.addWidget(prim_path_label)
+        # Variant Set selector
+        variant_set_label = QtWidgets.QLabel("Variant Set:")
+        controls_layout.addWidget(variant_set_label)
 
-        self.prim_path_display = QtWidgets.QLabel("(Select a prim from the Inspector tab)")
-        self.prim_path_display.setStyleSheet("color: gray; font-style: italic;")
-        controls_layout.addWidget(self.prim_path_display)
+        self.variant_set_combo = QtWidgets.QComboBox()
+        self.variant_set_combo.setMinimumWidth(120)
+        self.variant_set_combo.addItem("(No variant sets)")
+        self.variant_set_combo.setEnabled(False)
+        self.variant_set_combo.setToolTip("Select a variant set from the current prim")
+        controls_layout.addWidget(self.variant_set_combo)
 
         controls_layout.addStretch()
-        
-        # Settings
-        settings_btn = QtWidgets.QToolButton()
-        settings_btn.setText("⚙️")
-        settings_btn.setToolTip("Comparison settings")
-        controls_layout.addWidget(settings_btn)
         
         layout.addWidget(controls_bar)
 
@@ -185,15 +184,54 @@ class ComparisonTab(QtWidgets.QWidget):
 
     def set_prim_path(self, prim_path):
         """
-        Set the prim path to display in the comparison tab.
+        Set the prim path for the comparison tab.
         Called when the user selects a prim in the Inspector tab.
 
         Args:
             prim_path: The USD prim path string, or empty string for no selection
         """
         if prim_path:
-            self.prim_path_display.setText(prim_path)
-            self.prim_path_display.setStyleSheet("color: white; font-style: normal;")
+            # Get the prim and populate variant sets
+            if self._stage is not None:
+                try:
+                    self._current_prim = self._stage.GetPrimAtPath(prim_path)
+                    self._populate_variant_sets()
+                except Exception as e:
+                    print(f"Error getting prim at path {prim_path}: {e}")
+                    self._current_prim = None
+                    self._clear_variant_sets()
+            else:
+                self._current_prim = None
+                self._clear_variant_sets()
         else:
-            self.prim_path_display.setText("(Select a prim from the Inspector tab)")
-            self.prim_path_display.setStyleSheet("color: gray; font-style: italic;")
+            self._current_prim = None
+            self._clear_variant_sets()
+
+    def _populate_variant_sets(self):
+        """Populate the variant set dropdown with available variant sets from the current prim."""
+        self.variant_set_combo.blockSignals(True)
+        self.variant_set_combo.clear()
+
+        if self._current_prim and self._current_prim.IsValid():
+            variant_sets = self._current_prim.GetVariantSets()
+            set_names = list(variant_sets.GetNames())
+
+            if set_names:
+                self.variant_set_combo.addItems(set_names)
+                self.variant_set_combo.setEnabled(True)
+            else:
+                self.variant_set_combo.addItem("(No variant sets)")
+                self.variant_set_combo.setEnabled(False)
+        else:
+            self.variant_set_combo.addItem("(No variant sets)")
+            self.variant_set_combo.setEnabled(False)
+
+        self.variant_set_combo.blockSignals(False)
+
+    def _clear_variant_sets(self):
+        """Clear the variant set dropdown."""
+        self.variant_set_combo.blockSignals(True)
+        self.variant_set_combo.clear()
+        self.variant_set_combo.addItem("(No variant sets)")
+        self.variant_set_combo.setEnabled(False)
+        self.variant_set_combo.blockSignals(False)

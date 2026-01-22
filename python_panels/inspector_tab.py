@@ -491,16 +491,16 @@ class InspectorTab(QtWidgets.QWidget):
     def set_stage(self, stage):
         """
         Set the USD stage to inspect.
-        
+
         Args:
             stage: A Usd.Stage object or None
         """
         # Save current selection before refreshing
         selected_paths = self._get_selected_paths()
-        
+
         self._stage = stage
         self._refresh_from_stage()
-        
+
         # Restore selection after rebuild
         self._restore_selection(selected_paths)
     
@@ -590,7 +590,7 @@ class InspectorTab(QtWidgets.QWidget):
     def _update_details_pane(self, prim_data):
         """
         Update the right pane with details from the selected prim.
-        
+
         Args:
             prim_data: Dict with 'path', 'variant_sets', and 'prim' keys
         """
@@ -598,41 +598,43 @@ class InspectorTab(QtWidgets.QWidget):
         if prim is None or not prim.IsValid():
             self._clear_details_pane()
             return
-        
-        # Check if prim has any variant sets
-        variant_sets = prim.GetVariantSets()
-        set_names = variant_sets.GetNames()
-        
+
+        # Get variant set names from prim_data (cached during traversal)
+        set_names = prim_data.get("variant_sets", [])
+
         if not set_names:
             # Prim has no variant sets - show message
             self.path_label.setText(prim_data["path"])
             self.copy_path_label.setVisible(True)
-            
+
             # Show placeholder message
             self.placeholder_label.setText("There are no variants to show for this prim")
             self.placeholder_label.setVisible(True)
-            
+
             # Hide details and bottom bar
             self.details_scroll.setVisible(False)
             self.bottom_bar.setVisible(False)
             return
-        
+
         # Prim has variant sets - show details
         # Hide placeholder and show details
         self.placeholder_label.setVisible(False)
         self.details_scroll.setVisible(True)
         self.bottom_bar.setVisible(True)
-        
+
         # Update path label
         self.path_label.setText(prim_data["path"])
         self.copy_path_label.setVisible(True)
-        
+
         # ─────────────────────────────────────────────────────────────────────
         # Variant Sets
         # ─────────────────────────────────────────────────────────────────────
         self.variant_sets_folder.clear_widgets()
         self._variant_set_rows = []
-        
+
+        # Get variant sets object from prim for detailed queries
+        variant_sets = prim.GetVariantSets()
+
         if set_names:
             for set_name in set_names:
                 vs = variant_sets.GetVariantSet(set_name)

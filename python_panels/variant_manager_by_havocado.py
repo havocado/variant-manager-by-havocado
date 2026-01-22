@@ -430,7 +430,7 @@ class VariantManagerPanel(QtWidgets.QWidget):
         """Handle stage change - notify all tabs."""
         import datetime
         self.time_label.setText("⏱️ " + datetime.datetime.now().strftime("%H:%M:%S"))
-        
+
         # Update prim count in status bar
         if stage:
             try:
@@ -440,7 +440,7 @@ class VariantManagerPanel(QtWidgets.QWidget):
                 self.selection_label.setText("? prims")
         else:
             self.selection_label.setText("0 prims")
-        
+
         # Notify tabs - they should implement set_stage() method
         if hasattr(self.inspector_tab, 'set_stage'):
             self.inspector_tab.set_stage(stage)
@@ -514,6 +514,13 @@ class VariantManagerPanel(QtWidgets.QWidget):
         Args:
             prim_path: The USD prim path string, or empty string for no selection
         """
+        # Ensure comparison tab has the stage before setting prim path
+        # This handles the case where the inspector tab was initialized with a stage
+        # but _on_stage_changed was never called (initialization order issue)
+        if hasattr(self.comparison_tab, '_stage') and self.comparison_tab._stage is None:
+            if hasattr(self.inspector_tab, '_stage') and self.inspector_tab._stage is not None:
+                self.comparison_tab.set_stage(self.inspector_tab._stage)
+
         if hasattr(self.comparison_tab, 'set_prim_path'):
             self.comparison_tab.set_prim_path(prim_path)
 
