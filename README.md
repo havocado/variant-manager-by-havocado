@@ -246,7 +246,7 @@ Your settings and preferences will be preserved.
 
 ## Credits
 
-**Built with:** Python, PySide2
+**Built with:** Python, PySide6
 
 
 ## Version
