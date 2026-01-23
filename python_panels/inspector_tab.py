@@ -106,9 +106,9 @@ class InspectorTab(QtWidgets.QWidget):
         # Storage for variant prim data
         self._variant_prims = []
         self._path_to_item = {}  # Map paths to tree items
-        self._stage = None
-        self._lop_node = None
-        self._get_source_lop_node_callback = None  # Callback to get source LOP node from main panel # TODO: restructure
+
+        # Callback to get source LOP node from main panel (for creating new nodes)
+        self._get_source_lop_node_callback = None
         
         left_layout.addWidget(self.variant_tree)
 
@@ -219,95 +219,12 @@ class InspectorTab(QtWidgets.QWidget):
         right_layout.addWidget(bottom_bar)
         
         splitter.addWidget(right_pane)
-        
+
         # Set initial splitter sizes (30% / 70%)
         splitter.setSizes([300, 700])
-        
+
         layout.addWidget(splitter)
-        
-        # Initialize from current LOP node if available (must be after all widgets created)
-        self._init_from_lop()
     
-    def _init_from_lop(self):
-        """Initialize from the current LOP node context"""
-        if hou is None:
-            return
-        
-        # Try to get the current LOP node from various sources
-        lop_node = self._get_current_lop_node()
-        if lop_node:
-            self.set_lop_node(lop_node)
-    
-    def _get_current_lop_node(self):
-        """
-        Get the current LOP node from Houdini context.
-        Tries multiple methods to find a suitable LOP node.
-        
-        Returns:
-            hou.LopNode or None
-        """
-        if hou is None:
-            return None
-        
-        # Method 1: Check for selected LOP node
-        selected = hou.selectedNodes()
-        for node in selected:
-            if isinstance(node, hou.LopNode):
-                return node
-        
-        # Method 2: Check for displayed LOP node in network editor
-        try:
-            pane_tabs = hou.ui.paneTabs()
-            for pane in pane_tabs:
-                if pane.type() == hou.paneTabType.NetworkEditor:
-                    pwd = pane.pwd()
-                    if pwd and pwd.childTypeCategory() == hou.lopNodeTypeCategory():
-                        # We're in a LOP network, try to find display node
-                        for child in pwd.children():
-                            if isinstance(child, hou.LopNode) and child.isDisplayFlagSet():
-                                return child
-        except:
-            pass
-        
-        # Method 3: Look for any LOP network and get its output
-        try:
-            for node in hou.node('/stage').allSubChildren():
-                if isinstance(node, hou.LopNode) and node.isDisplayFlagSet():
-                    return node
-        except:
-            pass
-        
-        return None
-    
-    def set_lop_node(self, lop_node):
-        """
-        Set the LOP node to read the stage from.
-        
-        Args:
-            lop_node: A hou.LopNode object
-        """
-        self._lop_node = lop_node
-        if lop_node is not None:
-            try:
-                self._stage = lop_node.stage()
-            except Exception as e:
-                print(f"Failed to get stage from LOP node: {e}")
-                self._stage = None
-        else:
-            self._stage = None
-        self._refresh_from_stage()
-    
-    def refresh(self):
-        """
-        Refresh the variant list from the current LOP node.
-        Call this when the stage may have changed.
-        """
-        if self._lop_node is not None:
-            try:
-                self._stage = self._lop_node.stage()
-            except:
-                self._stage = None
-        self._refresh_from_stage()
     
     def _rebuild_list(self):
         """Rebuild the tree widget from _variant_prims data in hierarchy"""
@@ -491,6 +408,7 @@ class InspectorTab(QtWidgets.QWidget):
     def set_stage(self, stage):
         """
         Set the USD stage to inspect.
+        This is called by the main panel when the stage changes.
 
         Args:
             stage: A Usd.Stage object or None
@@ -498,26 +416,28 @@ class InspectorTab(QtWidgets.QWidget):
         # Save current selection before refreshing
         selected_paths = self._get_selected_paths()
 
-        self._stage = stage
-        self._refresh_from_stage()
+        self._refresh_from_stage(stage)
 
         # Restore selection after rebuild
         self._restore_selection(selected_paths)
-    
-    def _refresh_from_stage(self):
+
+    def _refresh_from_stage(self, stage):
         """
         Scan the stage for prims with variant sets and populate the list.
+
+        Args:
+            stage: A Usd.Stage object or None (passed from parent)
         """
-        if self._stage is None:
+        if stage is None:
             self._variant_prims = []
             self._rebuild_list()
             self._clear_details_pane()
             return
         
         self._variant_prims = []
-        
+
         # Traverse stage and find all prims with variant sets
-        for prim in self._stage.Traverse():
+        for prim in stage.Traverse():
             variant_sets = prim.GetVariantSets()
             set_names = variant_sets.GetNames()
             if set_names:
@@ -796,9 +716,10 @@ class InspectorTab(QtWidgets.QWidget):
         refs_and_payloads = []
         
         try:
-            # Get references
+            # Get references from the prim's stage
+            stage = prim.GetStage()
             refs_api = prim.GetReferences()
-            prim_spec = self._stage.GetRootLayer().GetPrimAtPath(prim.GetPath())
+            prim_spec = stage.GetRootLayer().GetPrimAtPath(prim.GetPath())
             if prim_spec:
                 # Check for references
                 if hasattr(prim_spec, 'referenceList'):
@@ -920,15 +841,11 @@ class InspectorTab(QtWidgets.QWidget):
     def _get_source_lop_node(self):
         """
         Get the source LOP node to insert new nodes after.
-        Uses the callback from the main panel if available, then falls back to internal reference.
+        Uses the callback from the main panel.
         """
-        # Try the callback first
         if self._get_source_lop_node_callback is not None:
-            node = self._get_source_lop_node_callback()
-            if node is not None:
-                return node
-        # Fallback to internal reference
-        return self._lop_node
+            return self._get_source_lop_node_callback()
+        return None
 
     def _on_switch_variant_clicked(self):
         """Handle Switch button click - create a Set Variant node."""

@@ -49,11 +49,26 @@ class LOPNodeSelector(QtCore.QObject):
     def current_stage(self):
         """Returns the USD stage from the current node."""
         return self._current_stage
-    
+
     @property
     def available_nodes(self):
         """Returns list of available LOP node paths."""
         return self._available_nodes
+
+    def get_current_lop_node(self):
+        """
+        Get the current LOP node object.
+
+        Returns:
+            hou.LopNode or None
+        """
+        if not HOU_AVAILABLE or not self._current_node_path:
+            return None
+
+        try:
+            return hou.node(self._current_node_path)
+        except Exception:
+            return None
     
     def refresh_node_list(self):
         """Discover all LOP nodes in the scene that have valid stages."""
@@ -170,7 +185,48 @@ class LOPNodeSelector(QtCore.QObject):
         self._auto_refresh_enabled = enabled
         # Note: Full implementation would hook into hou.ui.addEventLoopCallback()
         # or use node change callbacks. Simplified for initial implementation.
-    
+
+    def discover_initial_node(self):
+        """
+        Discover and select an initial LOP node from the Houdini context.
+        Tries multiple methods to find a suitable LOP node.
+
+        Returns:
+            hou.LopNode or None
+        """
+        if not HOU_AVAILABLE:
+            return None
+
+        try:
+            # Method 1: Check for selected LOP node
+            selected = hou.selectedNodes()
+            for node in selected:
+                if isinstance(node, hou.LopNode):
+                    self.select_node(node.path())
+                    return node
+
+            # Method 2: Check for displayed LOP node in network editor
+            pane_tabs = hou.ui.paneTabs()
+            for pane in pane_tabs:
+                if pane.type() == hou.paneTabType.NetworkEditor:
+                    pwd = pane.pwd()
+                    if pwd and pwd.childTypeCategory() == hou.lopNodeTypeCategory():
+                        # We're in a LOP network, try to find display node
+                        for child in pwd.children():
+                            if isinstance(child, hou.LopNode) and child.isDisplayFlagSet():
+                                self.select_node(child.path())
+                                return child
+
+            # Method 3: Look for any LOP network and get its output
+            for node in hou.node('/stage').allSubChildren():
+                if isinstance(node, hou.LopNode) and node.isDisplayFlagSet():
+                    self.select_node(node.path())
+                    return node
+        except Exception:
+            pass
+
+        return None
+
     def jump_to_node(self):
         """Navigate to the current node in the network editor."""
         if not HOU_AVAILABLE or not self._current_node_path:
@@ -315,13 +371,9 @@ class VariantManagerPanel(QtWidgets.QWidget):
 
         # Comparison Tab
         self.comparison_tab = ComparisonTab()
+        self.comparison_tab.set_get_source_lop_node_callback(self._get_current_lop_node)
+        self.comparison_tab.nodeCreated.connect(self._on_node_created)
         self.tab_widget.addTab(self.comparison_tab, "Comparison")
-
-        # Initialize comparison tab with current LOP node if inspector tab has one
-        if hasattr(self.inspector_tab, '_lop_node') and self.inspector_tab._lop_node:
-            self.comparison_tab.set_lop_node(self.inspector_tab._lop_node)
-            if hasattr(self.inspector_tab, '_stage') and self.inspector_tab._stage:
-                self.comparison_tab.set_stage(self.inspector_tab._stage)
 
         main_layout.addWidget(self.tab_widget)
         
@@ -389,6 +441,9 @@ class VariantManagerPanel(QtWidgets.QWidget):
 
         # Initial population
         self._refresh_node_list()
+
+        # Discover and select initial LOP node
+        self.lop_selector.discover_initial_node()
     
     # ═══════════════════════════════════════════════════════════════════════════
     # LOP SELECTOR SLOTS
@@ -397,7 +452,7 @@ class VariantManagerPanel(QtWidgets.QWidget):
     def _refresh_node_list(self):
         """Refresh the list of available LOP nodes."""
         self.lop_selector.refresh_node_list()
-    
+
     def _on_lop_combo_changed(self, text):
         """Handle combo box selection change."""
         if text and text != self.lop_selector.current_node_path:
@@ -440,15 +495,11 @@ class VariantManagerPanel(QtWidgets.QWidget):
             self.selection_label.setText("0 prims")
 
         # Get the current LOP node for thumbnail generation
-        lop_node = self._get_current_lop_node()
+        lop_node = self.lop_selector.get_current_lop_node()
 
-        # Notify tabs - they should implement set_stage() method
-        if hasattr(self.inspector_tab, 'set_stage'):
-            self.inspector_tab.set_stage(stage)
-        if hasattr(self.comparison_tab, 'set_stage'):
-            self.comparison_tab.set_stage(stage)
-        if hasattr(self.comparison_tab, 'set_lop_node'):
-            self.comparison_tab.set_lop_node(lop_node)
+        # Notify tabs with stage and lop_node (single source of truth)
+        self.inspector_tab.set_stage(stage)
+        self.comparison_tab.set_stage(stage, lop_node)
     
     def _on_nodes_updated(self, node_paths):
         """Handle node list update."""
@@ -474,21 +525,11 @@ class VariantManagerPanel(QtWidgets.QWidget):
         """
         Get the currently selected LOP node object.
         Used as a callback for child widgets that need to create nodes.
-        
+
         Returns:
             hou.LopNode or None
         """
-        if not HOU_AVAILABLE:
-            return None
-        
-        node_path = self.lop_selector.current_node_path
-        if not node_path:
-            return None
-        
-        try:
-            return hou.node(node_path)
-        except Exception:
-            return None
+        return self.lop_selector.get_current_lop_node()
     
     def _on_node_created(self, node_path):
         """
@@ -515,15 +556,9 @@ class VariantManagerPanel(QtWidgets.QWidget):
         Args:
             prim_path: The USD prim path string, or empty string for no selection
         """
-        # Ensure comparison tab has the stage before setting prim path
-        # This handles the case where the inspector tab was initialized with a stage
-        # but _on_stage_changed was never called (initialization order issue)
-        if hasattr(self.comparison_tab, '_stage') and self.comparison_tab._stage is None:
-            if hasattr(self.inspector_tab, '_stage') and self.inspector_tab._stage is not None:
-                self.comparison_tab.set_stage(self.inspector_tab._stage)
-
-        if hasattr(self.comparison_tab, 'set_prim_path'):
-            self.comparison_tab.set_prim_path(prim_path)
+        # Get the current stage from the single source of truth
+        stage = self.lop_selector.current_stage
+        self.comparison_tab.set_prim_path(prim_path, stage)
 
 
 def createInterface():

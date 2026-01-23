@@ -191,31 +191,18 @@ class ComparisonPanelWidget(QtWidgets.QFrame):
         self.thumbnail_label.setFrameStyle(QtWidgets.QFrame.Box | QtWidgets.QFrame.Plain)
         self.thumbnail_label.setScaledContents(False)  # Preserve aspect ratio
         layout.addWidget(self.thumbnail_label)
-        
+
         # Control buttons overlay
         controls = QtWidgets.QWidget()
         controls_layout = QtWidgets.QHBoxLayout(controls)
         controls_layout.setContentsMargins(0, 0, 0, 0)
         controls_layout.setSpacing(4)
-        
+
         controls_layout.addStretch()
-        
-        lock_btn = QtWidgets.QToolButton()
-        lock_btn.setText("🔒")
-        lock_btn.setToolTip("Pin/lock this view")
-        lock_btn.setCheckable(True)
-        controls_layout.addWidget(lock_btn)
-        
-        camera_btn = QtWidgets.QToolButton()
-        camera_btn.setText("📷")
-        camera_btn.setToolTip("Reset camera")
-        controls_layout.addWidget(camera_btn)
-        
-        focus_btn = QtWidgets.QToolButton()
-        focus_btn.setText("🔍")
-        focus_btn.setToolTip("Focus/isolate")
-        controls_layout.addWidget(focus_btn)
-        
+
+        self.switch_btn = QtWidgets.QPushButton("Switch")
+        controls_layout.addWidget(self.switch_btn)
+
         controls_layout.addStretch()
 
         layout.addWidget(controls)
@@ -223,6 +210,26 @@ class ComparisonPanelWidget(QtWidgets.QFrame):
     def set_variant_name(self, variant_name):
         """Update the variant name displayed in the panel"""
         self.variant_label.setText(variant_name)
+
+    def set_variant_context(self, prim_path, variant_set, variant_choice):
+        """
+        Set the variant context for the switch button.
+
+        Args:
+            prim_path: USD prim path
+            variant_set: Variant set name
+            variant_choice: Variant choice name
+        """
+        self.switch_btn.setProperty("prim_path", prim_path)
+        self.switch_btn.setProperty("variant_set", variant_set)
+        self.switch_btn.setProperty("variant_choice", variant_choice)
+        self.switch_btn.setToolTip(
+            f"Create Set Variant node for setting {variant_set} to '{variant_choice}'.\n\n"
+            "This will create a new node in the LOP network to set the variant. "
+            "The variant manager is automatically set to use the created node. "
+            "To undo this, delete the set variant node from the LOP network and "
+            "revert the LOP path of the variant manager back to the original node."
+        )
 
     def set_thumbnail(self, pixmap):
         """
