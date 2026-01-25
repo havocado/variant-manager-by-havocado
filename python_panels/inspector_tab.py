@@ -8,7 +8,7 @@ try:
 except ImportError:
     hou = None
 
-from widgets import CollapsibleFolder, VariantSetRow
+from widgets import VariantSetRow, SimpleSection, SwitchVariantButton
 from node_utils import create_set_variant_node, configure_set_variant_node, jump_to_node
 from state import get_state
 
@@ -154,7 +154,7 @@ class InspectorTab(QtWidgets.QWidget):
         self.placeholder_label.setWordWrap(True)
         right_layout.addWidget(self.placeholder_label)
         
-        # Scroll area for folders
+        # Scroll area for sections
         scroll = QtWidgets.QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
@@ -163,39 +163,39 @@ class InspectorTab(QtWidgets.QWidget):
         scroll_content = QtWidgets.QWidget()
         scroll_layout = QtWidgets.QVBoxLayout(scroll_content)
         scroll_layout.setContentsMargins(4, 4, 4, 4)
-        scroll_layout.setSpacing(8)
+        scroll_layout.setSpacing(12)
         
         # ─────────────────────────────────────────────────────────────────────
-        # Variant Sets Folder
+        # Variant Sets Section
         # ─────────────────────────────────────────────────────────────────────
-        self.variant_sets_folder = CollapsibleFolder("Variant Sets", expanded=True)
+        self.variant_sets_section = SimpleSection("Variant Sets")
         self._variant_set_rows = []  # Store row widgets for cleanup
         
-        scroll_layout.addWidget(self.variant_sets_folder)
+        scroll_layout.addWidget(self.variant_sets_section)
         
         # ─────────────────────────────────────────────────────────────────────
-        # Properties Folder
+        # Properties Section
         # ─────────────────────────────────────────────────────────────────────
-        self.properties_folder = CollapsibleFolder("Properties", expanded=True)
+        self.properties_section = SimpleSection("Properties")
         self._property_widgets = []  # Store for cleanup
         
-        scroll_layout.addWidget(self.properties_folder)
+        scroll_layout.addWidget(self.properties_section)
         
         # ─────────────────────────────────────────────────────────────────────
-        # Layer Stack Folder
+        # Layer Stack Section
         # ─────────────────────────────────────────────────────────────────────
-        self.layer_folder = CollapsibleFolder("Layer Stack", expanded=True)
+        self.layer_section = SimpleSection("Layer Stack")
         self._layer_widgets = []  # Store for cleanup
         
-        scroll_layout.addWidget(self.layer_folder)
+        scroll_layout.addWidget(self.layer_section)
         
         # ─────────────────────────────────────────────────────────────────────
-        # References & Payloads Folder
+        # References & Payloads Section
         # ─────────────────────────────────────────────────────────────────────
-        self.refs_folder = CollapsibleFolder("References & Payloads", expanded=True)
+        self.refs_section = SimpleSection("References & Payloads")
         self._ref_widgets = []  # Store for cleanup
         
-        scroll_layout.addWidget(self.refs_folder)
+        scroll_layout.addWidget(self.refs_section)
         
         scroll_layout.addStretch()
         
@@ -352,7 +352,7 @@ class InspectorTab(QtWidgets.QWidget):
         return None
     
     def _on_selection_changed(self):
-        """Handle selection change in variant tree"""
+        """Callback for signal itemSelectionChanged (variant_tree)."""
         selected = self.variant_tree.selectedItems()
 
         # Filter to only items with variant data (not intermediate nodes)
@@ -408,12 +408,7 @@ class InspectorTab(QtWidgets.QWidget):
             self._on_selection_changed()
     
     def _on_stage_changed(self, stage):
-        """
-        Handle stage change from state singleton.
-
-        Args:
-            stage: A Usd.Stage object or None
-        """
+        """Callback for signal stage_changed."""
         # Save current selection before refreshing
         selected_paths = self._get_selected_paths()
 
@@ -456,7 +451,7 @@ class InspectorTab(QtWidgets.QWidget):
         self.copy_path_label.setVisible(False)
         
         # Show placeholder message
-        self.placeholder_label.setText("Please select a prim")
+        self.placeholder_label.setText("Start by selecting a prim with variants from the list on the left.")
         self.placeholder_label.setVisible(True)
         
         # Hide details and bottom bar
@@ -464,20 +459,20 @@ class InspectorTab(QtWidgets.QWidget):
         self.bottom_bar.setVisible(False)
         
         # Clear variant sets
-        self.variant_sets_folder.clear_widgets()
+        self.variant_sets_section.clear_widgets()
         self._variant_set_rows = []
         
         # Clear properties
-        self.properties_folder.clear_widgets()
+        self.properties_section.clear_widgets()
         self._property_widgets = []
         
         # Clear layers
-        self.layer_folder.clear_widgets()
+        self.layer_section.clear_widgets()
         self._layer_widgets = []
-        self.layer_folder.set_title("Layer Stack")
+        self.layer_section.set_title("Layer Stack")
         
         # Clear refs
-        self.refs_folder.clear_widgets()
+        self.refs_section.clear_widgets()
         self._ref_widgets = []
     
     def _show_multi_selection_summary(self, selected_items):
@@ -485,7 +480,7 @@ class InspectorTab(QtWidgets.QWidget):
         self.path_label.setText(f"({len(selected_items)} prims selected)")
         
         # Clear and show aggregate info
-        self.variant_sets_folder.clear_widgets()
+        self.variant_sets_section.clear_widgets()
         self._variant_set_rows = []
         
         # Collect all variant sets across selection
@@ -498,14 +493,14 @@ class InspectorTab(QtWidgets.QWidget):
         if all_sets:
             summary_label = QtWidgets.QLabel(f"Variant sets in selection: {', '.join(sorted(all_sets))}")
             summary_label.setWordWrap(True)
-            self.variant_sets_folder.add_widget(summary_label)
+            self.variant_sets_section.add_widget(summary_label)
         
         # Clear other sections
-        self.properties_folder.clear_widgets()
+        self.properties_section.clear_widgets()
         self._property_widgets = []
-        self.layer_folder.clear_widgets()
+        self.layer_section.clear_widgets()
         self._layer_widgets = []
-        self.refs_folder.clear_widgets()
+        self.refs_section.clear_widgets()
         self._ref_widgets = []
     
     def _update_details_pane(self, prim_data):
@@ -550,7 +545,7 @@ class InspectorTab(QtWidgets.QWidget):
         # ─────────────────────────────────────────────────────────────────────
         # Variant Sets
         # ─────────────────────────────────────────────────────────────────────
-        self.variant_sets_folder.clear_widgets()
+        self.variant_sets_section.clear_widgets()
         self._variant_set_rows = []
 
         # Get variant sets object from prim for detailed queries
@@ -565,7 +560,7 @@ class InspectorTab(QtWidgets.QWidget):
                 # Show set name and current selection as normal text
                 set_label = QtWidgets.QLabel(f"{set_name}: {current_selection or '(none)'}")
                 set_label.setStyleSheet("font-weight: bold; font-size: 13px; margin-bottom: 2px;")
-                self.variant_sets_folder.add_widget(set_label)
+                self.variant_sets_section.add_widget(set_label)
 
                 # Create a vertical list for variants
                 variants_widget = QtWidgets.QWidget()
@@ -589,12 +584,8 @@ class InspectorTab(QtWidgets.QWidget):
 
                         option_layout.addStretch()
 
-                        switch_btn = QtWidgets.QPushButton("Switch")
-                        switch_btn.setToolTip(f"Create Set Variant node for setting {set_name} to '{choice}'.\n\nThis will create a new node in the LOP network to set the variant. The variant manager is automatically set to use the created node. To undo this, delete the set variant node from the LOP network and revert the LOP path of the variant manager back to the original node.")
-                        switch_btn.setAttribute(QtCore.Qt.WA_AlwaysShowToolTips)
-                        switch_btn.setProperty("prim_path", prim_data["path"])
-                        switch_btn.setProperty("variant_set", set_name)
-                        switch_btn.setProperty("variant_choice", choice)
+                        switch_btn = SwitchVariantButton()
+                        switch_btn.set_variant_context(prim_data["path"], set_name, choice)
                         switch_btn.clicked.connect(self._on_switch_variant_clicked)
                         option_layout.addWidget(switch_btn)
 
@@ -604,16 +595,16 @@ class InspectorTab(QtWidgets.QWidget):
                     variants_layout.addWidget(no_options_label)
 
                 variants_layout.addStretch()
-                self.variant_sets_folder.add_widget(variants_widget)
+                self.variant_sets_section.add_widget(variants_widget)
                 self._variant_set_rows.append(variants_widget)
         else:
             no_sets_label = QtWidgets.QLabel("(No variant sets)")
-            self.variant_sets_folder.add_widget(no_sets_label)
+            self.variant_sets_section.add_widget(no_sets_label)
         
         # ─────────────────────────────────────────────────────────────────────
         # Properties (Metadata)
         # ─────────────────────────────────────────────────────────────────────
-        self.properties_folder.clear_widgets()
+        self.properties_section.clear_widgets()
         self._property_widgets = []
         
         # Collect prim metadata
@@ -673,18 +664,18 @@ class InspectorTab(QtWidgets.QWidget):
             value_label.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
             prop_layout.addWidget(value_label, 1)
             
-            self.properties_folder.add_widget(prop_row)
+            self.properties_section.add_widget(prop_row)
             self._property_widgets.append(prop_row)
         
         if not properties:
             no_props = QtWidgets.QLabel("  (No metadata)")
-            self.properties_folder.add_widget(no_props)
+            self.properties_section.add_widget(no_props)
             self._property_widgets.append(no_props)
         
         # ─────────────────────────────────────────────────────────────────────
         # Layer Stack
         # ─────────────────────────────────────────────────────────────────────
-        self.layer_folder.clear_widgets()
+        self.layer_section.clear_widgets()
         self._layer_widgets = []
         
         try:
@@ -696,22 +687,22 @@ class InspectorTab(QtWidgets.QWidget):
                 layer_name = layer.GetDisplayName() or layer.identifier.split("/")[-1]
                 layers.append(layer_name)
             
-            self.layer_folder.set_title(f"Layer Stack ({len(layers)} layers)")
+            self.layer_section.set_title(f"Layer Stack ({len(layers)} layers)")
             
             for layer_name in layers:
                 layer_label = QtWidgets.QLabel(f"  • {layer_name}")
                 layer_label.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
-                self.layer_folder.add_widget(layer_label)
+                self.layer_section.add_widget(layer_label)
                 self._layer_widgets.append(layer_label)
         except Exception as e:
             error_label = QtWidgets.QLabel(f"  Error: {e}")
-            self.layer_folder.add_widget(error_label)
+            self.layer_section.add_widget(error_label)
             self._layer_widgets.append(error_label)
         
         # ─────────────────────────────────────────────────────────────────────
         # References & Payloads
         # ─────────────────────────────────────────────────────────────────────
-        self.refs_folder.clear_widgets()
+        self.refs_section.clear_widgets()
         self._ref_widgets = []
         
         refs_and_payloads = []
@@ -755,11 +746,11 @@ class InspectorTab(QtWidgets.QWidget):
                 ref_label = QtWidgets.QLabel(f"  • {ref_str}")
                 ref_label.setWordWrap(True)
                 ref_label.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
-                self.refs_folder.add_widget(ref_label)
+                self.refs_section.add_widget(ref_label)
                 self._ref_widgets.append(ref_label)
         else:
             no_refs = QtWidgets.QLabel("  (No references or payloads)")
-            self.refs_folder.add_widget(no_refs)
+            self.refs_section.add_widget(no_refs)
             self._ref_widgets.append(no_refs)
 
     def _copy_path_to_clipboard(self):

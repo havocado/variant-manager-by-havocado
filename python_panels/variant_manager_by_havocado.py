@@ -66,63 +66,6 @@ class VariantManagerPanel(QtWidgets.QWidget):
         
         shelf_toolbar.addSeparator()
         
-        # Filter button
-        filter_btn = QtWidgets.QToolButton()
-        filter_btn.setText("🔍")
-        filter_btn.setToolTip("Filter variants")
-        shelf_toolbar.addWidget(filter_btn)
-        
-        # Refresh button
-        self.refresh_btn = QtWidgets.QToolButton()
-        self.refresh_btn.setText("⟳")
-        self.refresh_btn.setToolTip("Refresh node list and stage")
-        self.refresh_btn.clicked.connect(self._on_refresh_clicked)
-        shelf_toolbar.addWidget(self.refresh_btn)
-        
-        # Multi-select toggle
-        multi_btn = QtWidgets.QToolButton()
-        multi_btn.setText("⚌")
-        multi_btn.setToolTip("Toggle multi-select mode")
-        multi_btn.setCheckable(True)
-        shelf_toolbar.addWidget(multi_btn)
-        
-        # Expand/collapse all
-        expand_btn = QtWidgets.QToolButton()
-        expand_btn.setText("⊞")
-        expand_btn.setToolTip("Expand/collapse all folders")
-        shelf_toolbar.addWidget(expand_btn)
-        
-        # Spacer
-        spacer = QtWidgets.QWidget()
-        spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
-        shelf_toolbar.addWidget(spacer)
-        
-        # Right-aligned tools
-        # Copy paths
-        copy_btn = QtWidgets.QToolButton()
-        copy_btn.setText("📋")
-        copy_btn.setToolTip("Copy prim paths")
-        shelf_toolbar.addWidget(copy_btn)
-        
-        # Export report
-        export_btn = QtWidgets.QToolButton()
-        export_btn.setText("📊")
-        export_btn.setToolTip("Export report")
-        shelf_toolbar.addWidget(export_btn)
-        
-        # Settings
-        settings_btn = QtWidgets.QToolButton()
-        settings_btn.setText("⚙️")
-        settings_btn.setToolTip("Panel settings")
-        settings_btn.setPopupMode(QtWidgets.QToolButton.InstantPopup)
-        settings_menu = QtWidgets.QMenu()
-        settings_menu.addAction("Show Hidden Prims")
-        settings_menu.addAction("Auto-refresh")
-        settings_menu.addSeparator()
-        settings_menu.addAction("Preferences...")
-        settings_btn.setMenu(settings_menu)
-        shelf_toolbar.addWidget(settings_btn)
-        
         main_layout.addWidget(shelf_toolbar)
         
         # ─────────────────────────────────────────────────────────────────────
@@ -168,25 +111,6 @@ class VariantManagerPanel(QtWidgets.QWidget):
         self.selection_label = QtWidgets.QLabel("0 prims")
         status_layout.addWidget(self.selection_label)
         
-        # Separator
-        sep2 = QtWidgets.QLabel("│")
-        status_layout.addWidget(sep2)
-        
-        # Warning count
-        self.warning_btn = QtWidgets.QPushButton("⚠️ 0")
-        self.warning_btn.setFlat(True)
-        self.warning_btn.setToolTip("Filter to warnings")
-        status_layout.addWidget(self.warning_btn)
-        
-        # Separator
-        sep3 = QtWidgets.QLabel("│")
-        status_layout.addWidget(sep3)
-        
-        # Timestamp
-        self.time_label = QtWidgets.QLabel("⏱️ --:--:--")
-        self.time_label.setToolTip("Last refresh timestamp")
-        status_layout.addWidget(self.time_label)
-        
         status_layout.addStretch()
         
         main_layout.addWidget(status_bar)
@@ -218,7 +142,7 @@ class VariantManagerPanel(QtWidgets.QWidget):
         self.lop_selector.refresh_node_list()
 
     def _on_lop_combo_changed(self, text):
-        """Handle combo box selection change."""
+        """Callback for signal currentTextChanged (lop_path_combo)."""
         state = get_state()
         current_path = state.lop_node.path() if state.lop_node else None
         if text and text != current_path:
@@ -226,13 +150,11 @@ class VariantManagerPanel(QtWidgets.QWidget):
 
     def _on_refresh_clicked(self):
         """Handle refresh button click."""
-        import datetime
         self._refresh_node_list()
         self.lop_selector.refresh_current_stage()
-        self.time_label.setText("⏱️ " + datetime.datetime.now().strftime("%H:%M:%S"))
 
     def _on_lop_node_changed(self, lop_node):
-        """Handle LOP node change from state - update UI."""
+        """Callback for signal lop_node_changed."""
         node_path = lop_node.path() if lop_node else ""
 
         # Update status bar
@@ -248,9 +170,7 @@ class VariantManagerPanel(QtWidgets.QWidget):
             self.lop_path_combo.blockSignals(False)
 
     def _on_stage_changed(self, stage):
-        """Handle stage change from state - update UI."""
-        import datetime
-        self.time_label.setText("⏱️ " + datetime.datetime.now().strftime("%H:%M:%S"))
+        """Callback for signal stage_changed."""
 
         # Update prim count in status bar
         if stage:

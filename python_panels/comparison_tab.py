@@ -102,7 +102,7 @@ class ComparisonTab(QtWidgets.QWidget):
         layout.addWidget(self.scroll)
 
     def _on_view_mode_changed(self, mode):
-        """Handle view mode change and reorganize panels"""
+        """Callback for signal currentTextChanged (view_combo)."""
         self._current_view_mode = mode
         self._reorganize_panels()
 
@@ -163,21 +163,11 @@ class ComparisonTab(QtWidgets.QWidget):
         self.grid_widget.updateGeometry()
 
     def _on_stage_changed(self, stage):
-        """
-        Handle stage change from state singleton.
-
-        Args:
-            stage: A Usd.Stage object or None
-        """
+        """Callback for signal stage_changed."""
         self._refresh_from_stage(stage)
 
     def _on_lop_node_changed(self, lop_node):
-        """
-        Handle LOP node change from state singleton.
-
-        Args:
-            lop_node: A hou.LopNode object or None
-        """
+        """Callback for signal lop_node_changed."""
         self._update_thumbnail_manager(lop_node)
 
     def _update_thumbnail_manager(self, lop_node):
@@ -223,12 +213,7 @@ class ComparisonTab(QtWidgets.QWidget):
             self._populate_variant_sets()
 
     def _on_prim_path_changed(self, prim_path):
-        """
-        Handle prim path change from state singleton.
-
-        Args:
-            prim_path: The USD prim path string, or empty string for no selection
-        """
+        """Callback for signal prim_path_changed."""
         if prim_path:
             self._populate_variant_sets()
         else:
@@ -271,7 +256,7 @@ class ComparisonTab(QtWidgets.QWidget):
         self._clear_panels()
 
     def _on_variant_set_changed(self, variant_set_name):
-        """Handle variant set selection change and rebuild comparison panels."""
+        """Callback for signal currentTextChanged (variant_set_combo)."""
         prim = get_state().get_prim()
         if variant_set_name == "(No variant sets)" or not prim or not prim.IsValid():
             self._clear_panels()

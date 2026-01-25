@@ -59,11 +59,10 @@ class VariantManagerState(QtCore.QObject):
         """Current LOP node (hou.LopNode or None)."""
         return self._lop_node
 
-    @lop_node.setter # Should always emit signals on change
+    @lop_node.setter # Should always emit signals on change, even if value is same
     def lop_node(self, value):
-        if self._lop_node != value:
-            self._lop_node = value
-            self.lop_node_changed.emit(value)
+        self._lop_node = value
+        self.lop_node_changed.emit(value)
 
     # ─────────────────────────────────────────────────────────────────────────
     # USD Stage
@@ -75,6 +74,7 @@ class VariantManagerState(QtCore.QObject):
 
     @stage.setter # Should always emit signals on update, even if value is same
     def stage(self, value):
+        self._stage = value
         self.stage_changed.emit(value)
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -87,6 +87,7 @@ class VariantManagerState(QtCore.QObject):
 
     @prim_path.setter # Should always emit signals on change, even if value is same
     def prim_path(self, value):
+        self._prim_path = value
         self.prim_path_changed.emit(value)
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -99,6 +100,7 @@ class VariantManagerState(QtCore.QObject):
 
     @variant_set.setter # Should always emit signals on change, even if value is same
     def variant_set(self, value):
+        self._variant_set = value
         self.variant_set_changed.emit(value)
 
     # ─────────────────────────────────────────────────────────────────────────

@@ -5,84 +5,98 @@ from PySide6 import QtWidgets, QtCore, QtGui
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# COLLAPSIBLE FOLDER WIDGET (Houdini Parameter Pane Style)
+# SWITCH VARIANT BUTTON
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class CollapsibleFolder(QtWidgets.QWidget):
-    """Houdini-style collapsible parameter folder"""
-    
-    def __init__(self, title, parent=None, expanded=True):
-        super(CollapsibleFolder, self).__init__(parent)
-        self._expanded = expanded
+class SwitchVariantButton(QtWidgets.QPushButton):
+    """
+    Reusable button for switching USD variants.
+
+    Stores prim_path, variant_set, and variant_choice as properties
+    for use by click handlers in the parent widget.
+    """
+
+    def __init__(self, parent=None):
+        super(SwitchVariantButton, self).__init__("Switch", parent)
+
+    def set_variant_context(self, prim_path, variant_set, variant_choice):
+        """
+        Set the variant context for this button.
+
+        Args:
+            prim_path: USD prim path
+            variant_set: Variant set name
+            variant_choice: Variant choice name
+        """
+        self.setProperty("prim_path", prim_path)
+        self.setProperty("variant_set", variant_set)
+        self.setProperty("variant_choice", variant_choice)
+        self.setToolTip(
+            f"Create Set Variant node for setting {variant_set} to '{variant_choice}'.\n\n"
+            "This will create a new node in the LOP network to set the variant. "
+            "The variant manager is automatically set to use the created node. "
+            "To undo this, delete the set variant node from the LOP network and "
+            "revert the LOP path of the variant manager back to the original node."
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SIMPLE SECTION WIDGET (Non-collapsible)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class SimpleSection(QtWidgets.QWidget):
+    """Simple section with title and content area (non-collapsible)"""
+
+    def __init__(self, title, parent=None):
+        super(SimpleSection, self).__init__(parent)
         self._title = title
-        
+
         # Main layout
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
-        
+        main_layout.setSpacing(2)
+
         # Header
-        self.header = QtWidgets.QFrame()
-        self.header.setCursor(QtCore.Qt.PointingHandCursor)
-        
-        header_layout = QtWidgets.QHBoxLayout(self.header)
+        header = QtWidgets.QFrame()
+        header_layout = QtWidgets.QHBoxLayout(header)
         header_layout.setContentsMargins(6, 4, 6, 4)
         header_layout.setSpacing(6)
-        
-        # Toggle arrow
-        self.toggle_label = QtWidgets.QLabel("▾" if expanded else "▸")
-        self.toggle_label.setFixedWidth(12)
-        header_layout.addWidget(self.toggle_label)
-        
+
         # Title
         self.title_label = QtWidgets.QLabel(title)
+        self.title_label.setStyleSheet("font-weight: bold;")
         header_layout.addWidget(self.title_label)
-        
+
         header_layout.addStretch()
-        
-        # Right side value/status area
-        self.status_label = QtWidgets.QLabel("")
-        header_layout.addWidget(self.status_label)
-        
-        main_layout.addWidget(self.header)
-        
+
+        main_layout.addWidget(header)
+
+        # Separator line
+        separator = QtWidgets.QFrame()
+        separator.setFrameShape(QtWidgets.QFrame.HLine)
+        separator.setFrameShadow(QtWidgets.QFrame.Sunken)
+        main_layout.addWidget(separator)
+
         # Content area
         self.content = QtWidgets.QWidget()
         content_layout = QtWidgets.QVBoxLayout(self.content)
-        content_layout.setContentsMargins(20, 4, 4, 4)
+        content_layout.setContentsMargins(8, 4, 4, 8)
         content_layout.setSpacing(2)
         self.content_layout = content_layout
-        
+
         main_layout.addWidget(self.content)
-        
-        # Set initial state
-        self.content.setVisible(expanded)
-        
-        # Install event filter for click handling
-        self.header.mousePressEvent = self._on_header_clicked
-    
-    def _on_header_clicked(self, event):
-        self.toggle()
-    
-    def toggle(self):
-        self._expanded = not self._expanded
-        self.content.setVisible(self._expanded)
-        self.toggle_label.setText("▾" if self._expanded else "▸")
-    
-    def set_status(self, text):
-        self.status_label.setText(text)
-    
+
     def set_title(self, text):
-        """Update the folder title"""
+        """Update the section title"""
         self._title = text
         self.title_label.setText(text)
-    
+
     def add_widget(self, widget):
         self.content_layout.addWidget(widget)
-    
+
     def add_layout(self, layout):
         self.content_layout.addLayout(layout)
-    
+
     def clear_widgets(self):
         """Remove all widgets from the content area"""
         while self.content_layout.count():
@@ -200,7 +214,7 @@ class ComparisonPanelWidget(QtWidgets.QFrame):
 
         controls_layout.addStretch()
 
-        self.switch_btn = QtWidgets.QPushButton("Switch")
+        self.switch_btn = SwitchVariantButton()
         controls_layout.addWidget(self.switch_btn)
 
         controls_layout.addStretch()
@@ -220,16 +234,7 @@ class ComparisonPanelWidget(QtWidgets.QFrame):
             variant_set: Variant set name
             variant_choice: Variant choice name
         """
-        self.switch_btn.setProperty("prim_path", prim_path)
-        self.switch_btn.setProperty("variant_set", variant_set)
-        self.switch_btn.setProperty("variant_choice", variant_choice)
-        self.switch_btn.setToolTip(
-            f"Create Set Variant node for setting {variant_set} to '{variant_choice}'.\n\n"
-            "This will create a new node in the LOP network to set the variant. "
-            "The variant manager is automatically set to use the created node. "
-            "To undo this, delete the set variant node from the LOP network and "
-            "revert the LOP path of the variant manager back to the original node."
-        )
+        self.switch_btn.set_variant_context(prim_path, variant_set, variant_choice)
 
     def set_thumbnail(self, pixmap):
         """
@@ -254,7 +259,7 @@ class ComparisonPanelWidget(QtWidgets.QFrame):
     def set_loading(self):
         """Show loading state for thumbnail."""
         self.thumbnail_label.clear()
-        self.thumbnail_label.setText("[Loading...]")
+        self.thumbnail_label.setText("Click [Preview] button")
 
     def set_failed(self):
         """Show failed state for thumbnail."""
