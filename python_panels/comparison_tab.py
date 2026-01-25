@@ -19,7 +19,6 @@ class ComparisonTab(QtWidgets.QWidget):
         super(ComparisonTab, self).__init__(parent)
 
         self._panels = []  # Store panel widgets for reordering
-        self._current_view_mode = "Side-by-Side"
         self._thumbnail_manager = None  # Will be initialized when LOP node is set
 
         # Subscribe to state signals
@@ -27,6 +26,7 @@ class ComparisonTab(QtWidgets.QWidget):
         state.stage_changed.connect(self._on_stage_changed)
         state.lop_node_changed.connect(self._on_lop_node_changed)
         state.prim_path_changed.connect(self._on_prim_path_changed)
+        state.view_mode_changed.connect(self._on_state_view_mode_changed)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
@@ -75,6 +75,7 @@ class ComparisonTab(QtWidgets.QWidget):
 
         self.view_combo = QtWidgets.QComboBox()
         self.view_combo.addItems(["Side-by-Side", "2x2 Grid", "3x3 Grid", "Vertical Stack"])
+        self.view_combo.setCurrentText(state.view_mode)  # Restore from state
         self.view_combo.currentTextChanged.connect(self._on_view_mode_changed)
         controls_layout.addWidget(self.view_combo)
 
@@ -103,8 +104,17 @@ class ComparisonTab(QtWidgets.QWidget):
 
     def _on_view_mode_changed(self, mode):
         """Callback for signal currentTextChanged (view_combo)."""
-        self._current_view_mode = mode
+        get_state().view_mode = mode
         self._reorganize_panels()
+
+    def _on_state_view_mode_changed(self, mode):
+        """Callback for signal view_mode_changed from state."""
+        # Sync combo box if changed externally
+        if self.view_combo.currentText() != mode:
+            self.view_combo.blockSignals(True)
+            self.view_combo.setCurrentText(mode)
+            self.view_combo.blockSignals(False)
+            self._reorganize_panels()
 
     def _reorganize_panels(self):
         """Reorganize panels based on current view mode"""
@@ -117,8 +127,10 @@ class ComparisonTab(QtWidgets.QWidget):
         # Delete the old layout
         QtWidgets.QWidget().setLayout(self.grid_layout)
 
+        view_mode = get_state().view_mode
+
         # Create new layout based on view mode
-        if self._current_view_mode == "Side-by-Side":
+        if view_mode == "Side-by-Side":
             self.grid_layout = QtWidgets.QHBoxLayout(self.grid_widget)
             self.grid_layout.setContentsMargins(4, 4, 4, 4)
             self.grid_layout.setSpacing(8)
@@ -127,7 +139,7 @@ class ComparisonTab(QtWidgets.QWidget):
             for panel in self._panels:
                 self.grid_layout.addWidget(panel)
 
-        elif self._current_view_mode == "Vertical Stack":
+        elif view_mode == "Vertical Stack":
             self.grid_layout = QtWidgets.QVBoxLayout(self.grid_widget)
             self.grid_layout.setContentsMargins(4, 4, 4, 4)
             self.grid_layout.setSpacing(8)
@@ -136,7 +148,7 @@ class ComparisonTab(QtWidgets.QWidget):
             for panel in self._panels:
                 self.grid_layout.addWidget(panel)
 
-        elif self._current_view_mode == "2x2 Grid":
+        elif view_mode == "2x2 Grid":
             self.grid_layout = QtWidgets.QGridLayout(self.grid_widget)
             self.grid_layout.setContentsMargins(4, 4, 4, 4)
             self.grid_layout.setSpacing(8)
@@ -147,7 +159,7 @@ class ComparisonTab(QtWidgets.QWidget):
                 col = i % 2
                 self.grid_layout.addWidget(panel, row, col)
 
-        elif self._current_view_mode == "3x3 Grid":
+        elif view_mode == "3x3 Grid":
             self.grid_layout = QtWidgets.QGridLayout(self.grid_widget)
             self.grid_layout.setContentsMargins(4, 4, 4, 4)
             self.grid_layout.setSpacing(8)
@@ -219,7 +231,8 @@ class ComparisonTab(QtWidgets.QWidget):
         self.variant_set_combo.blockSignals(True)
         self.variant_set_combo.clear()
 
-        prim = get_state().get_prim()
+        state = get_state()
+        prim = state.get_prim()
         if prim and prim.IsValid():
             variant_sets = prim.GetVariantSets()
             set_names = list(variant_sets.GetNames())
@@ -228,8 +241,10 @@ class ComparisonTab(QtWidgets.QWidget):
                 self.variant_set_combo.addItems(set_names)
                 self.variant_set_combo.setEnabled(True)
                 self.variant_set_combo.blockSignals(False)
-                # Trigger loading of the first variant set
-                self._on_variant_set_changed(set_names[0])
+                # Restore previously selected variant set if it exists, otherwise use first
+                selected = state.variant_set if state.variant_set in set_names else set_names[0]
+                self.variant_set_combo.setCurrentText(selected)
+                self._on_variant_set_changed(selected)
             else:
                 self.variant_set_combo.addItem("(No variant sets)")
                 self.variant_set_combo.setEnabled(False)

@@ -47,9 +47,6 @@ class InspectorTab(QtWidgets.QWidget):
     # Define signal to be emitted when a new node is created, with the new node's path
     # For example: when a "Set Variant" node is created from this tab
     nodeCreated = QtCore.Signal(str)
-
-    # Signal emitted when the selected prim path changes (or selection is cleared)
-    primPathChanged = QtCore.Signal(str)
     
     def __init__(self, parent=None):
         super(InspectorTab, self).__init__(parent)

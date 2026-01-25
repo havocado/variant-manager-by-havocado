@@ -24,6 +24,7 @@ class VariantManagerState(QtCore.QObject):
     stage_changed = QtCore.Signal(object)
     prim_path_changed = QtCore.Signal(str)
     variant_set_changed = QtCore.Signal(str)
+    view_mode_changed = QtCore.Signal(str)
 
     def __new__(cls):
         # Implements singleton pattern
@@ -50,6 +51,9 @@ class VariantManagerState(QtCore.QObject):
 
         # Name of the currently selected variant set (e.g., "modelVariant")
         self._variant_set: str = ""
+
+        # View mode preference for comparison tab layout
+        self._view_mode: str = "Side-by-Side"
 
     # ─────────────────────────────────────────────────────────────────────────
     # LOP Node
@@ -102,6 +106,20 @@ class VariantManagerState(QtCore.QObject):
     def variant_set(self, value):
         self._variant_set = value
         self.variant_set_changed.emit(value)
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # View Mode
+    # ─────────────────────────────────────────────────────────────────────────
+    @property
+    def view_mode(self):
+        """Current view mode for comparison tab layout."""
+        return self._view_mode
+
+    @view_mode.setter
+    def view_mode(self, value):
+        if self._view_mode != value:
+            self._view_mode = value
+            self.view_mode_changed.emit(value)
 
     # ─────────────────────────────────────────────────────────────────────────
     # Convenience Methods
