@@ -280,21 +280,10 @@ class ComparisonTab(QtWidgets.QWidget):
         prim_path = state.prim_path
         variant_set_name = state.variant_set
 
-        # Create a panel for each variant
+        # Create a panel for each variant (don't set thumbnails yet)
         for variant_name in variant_names:
             panel = ComparisonPanelWidget(variant_name)
-
-            # Check cache for existing thumbnail (don't generate if not cached)
-            cached_pixmap = None
-            if self._thumbnail_manager and prim_path and variant_set_name:
-                cached_pixmap = self._thumbnail_manager.get_cached_thumbnail(
-                    prim_path, variant_set_name, variant_name
-                )
-
-            if cached_pixmap:
-                panel.set_thumbnail(cached_pixmap)
-            else:
-                panel.set_loading()  # Show loading state if not cached
+            panel.set_loading()  # Always start with loading state
 
             # Set variant context for the switch button
             if prim_path and variant_set_name:
@@ -312,6 +301,26 @@ class ComparisonTab(QtWidgets.QWidget):
         self.create_thumbnails_btn.setEnabled(
             len(self._panels) > 0 and self._thumbnail_manager is not None
         )
+
+        # Defer thumbnail application until after layout is computed
+        QtCore.QTimer.singleShot(0, self._apply_cached_thumbnails)
+
+    def _apply_cached_thumbnails(self):
+        """Apply cached thumbnails to panels after layout is computed."""
+        state = get_state()
+        prim_path = state.prim_path
+        variant_set_name = state.variant_set
+
+        if not self._thumbnail_manager or not prim_path or not variant_set_name:
+            return
+
+        for panel in self._panels:
+            variant_name = panel.variant_label.text()
+            cached_pixmap = self._thumbnail_manager.get_cached_thumbnail(
+                prim_path, variant_set_name, variant_name
+            )
+            if cached_pixmap:
+                panel.set_thumbnail(cached_pixmap)
 
     def _clear_panels(self):
         """Remove all comparison panels."""

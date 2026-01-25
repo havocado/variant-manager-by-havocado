@@ -174,8 +174,6 @@ class ComparisonPanelWidget(QtWidgets.QFrame):
         if pixmap and not pixmap.isNull():
             # Scale pixmap to fit while preserving aspect ratio
             label_size = self.thumbnail_label.size()
-            #print label and pixmap size
-            print(f"Label size: {label_size}, Pixmap size: {pixmap.size()}")
             scaled_pixmap = pixmap.scaled(
                 label_size,
                 QtCore.Qt.KeepAspectRatio,
