@@ -158,59 +158,6 @@ Make sure:
 
 ---
 
-## What's a Variant?
-
-If you're new to USD variants, here's the quick version:
-
-**Variants let you store multiple versions of the same thing in one file.**
-
-For example, a table asset could have:
-- **Material variants:** wood, metal, glass
-- **Damage variants:** pristine, scratched, broken
-- **LOD variants:** high, medium, low
-
-Instead of creating `table_wood.usd`, `table_metal.usd`, `table_glass.usd`...
-You create one `table.usd` with all materials as variants!
-
-This makes it easy to:
-- Switch looks without reloading files
-- Keep everything organized
-- Submit assets for review
-- Work with layout artists
-
----
-
-## Tips for Artists
-
-### Organizing Variants
-
-**Good variant set names:**
-- `materials` (wood, metal, plastic)
-- `damage` (pristine, worn, destroyed)
-- `LOD` (high, medium, low)
-- `colors` (red, blue, green)
-
-**Good variant names:**
-- Use lowercase and underscores: `wood_oak`, `metal_rusty`
-- Be descriptive: `damage_light` not just `01`
-- No spaces or special characters
-
-### Before Submitting for Review
-
-1. **Test all variants** - Click through each one to make sure they work
-2. **Generate a contact sheet** - Shows all variants on one page
-3. **Save the USD** - Don't forget to save!
-4. **Include the contact sheet** - Attach it to your review submission
-
-### Working with Multiple Artists
-
-- Save your USD files regularly
-- Use version control (like Git) for your USD files
-- Keep variant names consistent across assets
-- Document your variant sets in your asset README
-
----
-
 ## Uninstalling
 
 To remove the tool:
