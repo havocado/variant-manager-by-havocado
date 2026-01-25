@@ -40,14 +40,12 @@ class ComparisonTab(QtWidgets.QWidget):
         controls_layout.setContentsMargins(8, 4, 8, 4)
         controls_layout.setSpacing(12)
 
-        # View mode
-        view_label = QtWidgets.QLabel("View:")
-        controls_layout.addWidget(view_label)
-
-        self.view_combo = QtWidgets.QComboBox()
-        self.view_combo.addItems(["Side-by-Side", "2x2 Grid", "3x3 Grid", "Vertical Stack"])
-        self.view_combo.currentTextChanged.connect(self._on_view_mode_changed)
-        controls_layout.addWidget(self.view_combo)
+        # Preview button
+        self.create_thumbnails_btn = QtWidgets.QPushButton("▶ Preview")
+        self.create_thumbnails_btn.setEnabled(False)
+        self.create_thumbnails_btn.setToolTip("Generate thumbnails for all variants using the current viewport camera")
+        self.create_thumbnails_btn.clicked.connect(self._on_create_thumbnails_clicked)
+        controls_layout.addWidget(self.create_thumbnails_btn)
 
         # Separator
         sep1 = QtWidgets.QFrame()
@@ -66,19 +64,21 @@ class ComparisonTab(QtWidgets.QWidget):
         self.variant_set_combo.currentTextChanged.connect(self._on_variant_set_changed)
         controls_layout.addWidget(self.variant_set_combo)
 
-        controls_layout.addStretch()
-
         # Separator
         sep2 = QtWidgets.QFrame()
         sep2.setFrameShape(QtWidgets.QFrame.VLine)
         controls_layout.addWidget(sep2)
 
-        # Create Thumbnails button
-        self.create_thumbnails_btn = QtWidgets.QPushButton("Create Thumbnails from Current Viewport")
-        self.create_thumbnails_btn.setEnabled(False)
-        self.create_thumbnails_btn.setToolTip("Generate thumbnails for all variants using the current viewport camera")
-        self.create_thumbnails_btn.clicked.connect(self._on_create_thumbnails_clicked)
-        controls_layout.addWidget(self.create_thumbnails_btn)
+        # View mode
+        view_label = QtWidgets.QLabel("View:")
+        controls_layout.addWidget(view_label)
+
+        self.view_combo = QtWidgets.QComboBox()
+        self.view_combo.addItems(["Side-by-Side", "2x2 Grid", "3x3 Grid", "Vertical Stack"])
+        self.view_combo.currentTextChanged.connect(self._on_view_mode_changed)
+        controls_layout.addWidget(self.view_combo)
+
+        controls_layout.addStretch()
         
         layout.addWidget(controls_bar)
 
