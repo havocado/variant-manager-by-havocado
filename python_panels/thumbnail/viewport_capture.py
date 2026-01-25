@@ -5,14 +5,8 @@ Handles viewport setup, scene isolation, and thumbnail capture
 import os
 import tempfile
 
-try:
-    import hou
-    from husd import assetutils
-    HOU_AVAILABLE = True
-except ImportError:
-    hou = None
-    assetutils = None
-    HOU_AVAILABLE = False
+import hou
+from husd import assetutils
 
 from node_utils import create_set_variant_node, configure_set_variant_node
 
@@ -45,9 +39,6 @@ class ViewportCaptureService:
         Raises:
             RuntimeError: If Houdini is not available or initialization fails.
         """
-        if not HOU_AVAILABLE:
-            raise RuntimeError("Houdini is not available")
-
         if source_lop_node is None:
             raise ValueError("source_lop_node cannot be None")
 
@@ -93,9 +84,6 @@ class ViewportCaptureService:
         Raises:
             CaptureException: If capture fails
         """
-        if not HOU_AVAILABLE:
-            raise CaptureException("Houdini is not available")
-
         if not self.variant_node:
             raise CaptureException("Viewport capture service not properly initialized")
 

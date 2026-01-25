@@ -23,7 +23,6 @@ class ThumbnailGenerator(QtCore.QObject):
 
     # Timing configuration
     TIMER_INTERVAL = 50  # ms between generations
-    GENERATION_TIMEOUT = 2000  # ms max per thumbnail (not implemented yet)
 
     def __init__(self, viewport_service, parent=None):
         """
