@@ -5,18 +5,9 @@ from PySide6 import QtWidgets, QtCore, QtGui
 
 from widgets import ComparisonPanelWidget
 from node_utils import create_set_variant_node, configure_set_variant_node, jump_to_node
+from state import get_state
 
-try:
-    from thumbnail import ThumbnailManager
-    THUMBNAIL_AVAILABLE = True
-except ImportError:
-    ThumbnailManager = None
-    THUMBNAIL_AVAILABLE = False
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# COMPARISON TAB
-# ═══════════════════════════════════════════════════════════════════════════════
+from thumbnail import ThumbnailManager
 
 class ComparisonTab(QtWidgets.QWidget):
     """Comparison tab with viewport gallery"""
@@ -29,12 +20,13 @@ class ComparisonTab(QtWidgets.QWidget):
 
         self._panels = []  # Store panel widgets for reordering
         self._current_view_mode = "Side-by-Side"
-        self._current_prim = None
-        self._current_variant_set = None  # Track current variant set name
         self._thumbnail_manager = None  # Will be initialized when LOP node is set
 
-        # Callback to get LOP node from main panel (for creating new nodes and thumbnails)
-        self._get_source_lop_node_callback = None
+        # Subscribe to state signals
+        state = get_state()
+        state.stage_changed.connect(self._on_stage_changed)
+        state.lop_node_changed.connect(self._on_lop_node_changed)
+        state.prim_path_changed.connect(self._on_prim_path_changed)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
@@ -170,20 +162,23 @@ class ComparisonTab(QtWidgets.QWidget):
         self.grid_widget.setLayout(self.grid_layout)
         self.grid_widget.updateGeometry()
 
-    def set_stage(self, stage, lop_node=None):
+    def _on_stage_changed(self, stage):
         """
-        Set the USD stage for comparison view.
-        Called by the main panel when the stage changes.
+        Handle stage change from state singleton.
 
         Args:
             stage: A Usd.Stage object or None
-            lop_node: A hou.LopNode object or None (for thumbnail generation)
         """
         self._refresh_from_stage(stage)
 
-        # Update thumbnail manager if we have a LOP node
-        if lop_node:
-            self._update_thumbnail_manager(lop_node)
+    def _on_lop_node_changed(self, lop_node):
+        """
+        Handle LOP node change from state singleton.
+
+        Args:
+            lop_node: A hou.LopNode object or None
+        """
+        self._update_thumbnail_manager(lop_node)
 
     def _update_thumbnail_manager(self, lop_node):
         """
@@ -201,7 +196,7 @@ class ComparisonTab(QtWidgets.QWidget):
             self._thumbnail_manager = None
 
         # Initialize new thumbnail manager if we have a LOP node
-        if lop_node and THUMBNAIL_AVAILABLE:
+        if lop_node:
             try:
                 self._thumbnail_manager = ThumbnailManager(lop_node, parent=self)
                 self._thumbnail_manager.thumbnail_ready.connect(self._on_thumbnail_ready)
@@ -212,54 +207,31 @@ class ComparisonTab(QtWidgets.QWidget):
                 traceback.print_exc()
                 self._thumbnail_manager = None
 
-    def set_get_source_lop_node_callback(self, callback):
-        """
-        Set the callback function to get the source LOP node from the main panel.
-
-        Args:
-            callback: A callable that returns a hou.LopNode or None
-        """
-        self._get_source_lop_node_callback = callback
-
     def _refresh_from_stage(self, stage):
         """
         Refresh the comparison panels from the given stage.
 
         Args:
-            stage: A Usd.Stage object or None (passed from parent)
+            stage: A Usd.Stage object or None
         """
         if stage is None:
-            self._current_prim = None
             return
 
-        # If we have a current prim path, refresh it from the new stage
-        if self._current_prim is not None:
-            try:
-                prim_path = str(self._current_prim.GetPath())
-                self._current_prim = stage.GetPrimAtPath(prim_path)
-            except:
-                self._current_prim = None
+        # If we have a current prim path in state, refresh variant sets
+        state = get_state()
+        if state.prim_path:
+            self._populate_variant_sets()
 
-    def set_prim_path(self, prim_path, stage=None):
+    def _on_prim_path_changed(self, prim_path):
         """
-        Set the prim path for the comparison tab.
-        Called when the user selects a prim in the Inspector tab.
+        Handle prim path change from state singleton.
 
         Args:
             prim_path: The USD prim path string, or empty string for no selection
-            stage: Optional Usd.Stage object. If provided, use this stage to get the prim.
         """
-        if prim_path and stage is not None:
-            # Get the prim and populate variant sets
-            try:
-                self._current_prim = stage.GetPrimAtPath(prim_path)
-                self._populate_variant_sets()
-            except Exception as e:
-                print(f"Error getting prim at path {prim_path}: {e}")
-                self._current_prim = None
-                self._clear_variant_sets()
+        if prim_path:
+            self._populate_variant_sets()
         else:
-            self._current_prim = None
             self._clear_variant_sets()
 
     def _populate_variant_sets(self):
@@ -267,8 +239,9 @@ class ComparisonTab(QtWidgets.QWidget):
         self.variant_set_combo.blockSignals(True)
         self.variant_set_combo.clear()
 
-        if self._current_prim and self._current_prim.IsValid():
-            variant_sets = self._current_prim.GetVariantSets()
+        prim = get_state().get_prim()
+        if prim and prim.IsValid():
+            variant_sets = prim.GetVariantSets()
             set_names = list(variant_sets.GetNames())
 
             if set_names:
@@ -299,15 +272,16 @@ class ComparisonTab(QtWidgets.QWidget):
 
     def _on_variant_set_changed(self, variant_set_name):
         """Handle variant set selection change and rebuild comparison panels."""
-        if variant_set_name == "(No variant sets)" or not self._current_prim or not self._current_prim.IsValid():
+        prim = get_state().get_prim()
+        if variant_set_name == "(No variant sets)" or not prim or not prim.IsValid():
             self._clear_panels()
             return
 
-        # Store current variant set name
-        self._current_variant_set = variant_set_name
+        # Update state with current variant set name
+        get_state().variant_set = variant_set_name
 
         # Get all variants for the selected variant set
-        variant_sets = self._current_prim.GetVariantSets()
+        variant_sets = prim.GetVariantSets()
         variant_set = variant_sets.GetVariantSet(variant_set_name)
 
         if variant_set:
@@ -321,8 +295,10 @@ class ComparisonTab(QtWidgets.QWidget):
         # Clear existing panels
         self._clear_panels()
 
-        # Get the prim path for context
-        prim_path = str(self._current_prim.GetPath()) if self._current_prim else ""
+        # Get context from state
+        state = get_state()
+        prim_path = state.prim_path
+        variant_set_name = state.variant_set
 
         # Create a panel for each variant
         for variant_name in variant_names:
@@ -330,8 +306,8 @@ class ComparisonTab(QtWidgets.QWidget):
             panel.set_loading()  # Show loading state initially
 
             # Set variant context for the switch button
-            if prim_path and self._current_variant_set:
-                panel.set_variant_context(prim_path, self._current_variant_set, variant_name)
+            if prim_path and variant_set_name:
+                panel.set_variant_context(prim_path, variant_set_name, variant_name)
 
             # Connect the switch button to the handler
             panel.switch_btn.clicked.connect(self._on_switch_variant_clicked)
@@ -366,14 +342,17 @@ class ComparisonTab(QtWidgets.QWidget):
 
     def _request_all_thumbnails(self):
         """Request thumbnails for all panels."""
-        if not self._thumbnail_manager or not self._current_prim or not self._current_variant_set:
+        state = get_state()
+        prim = state.get_prim()
+
+        if not self._thumbnail_manager or not prim or not state.variant_set:
             return
 
-        prim_path = str(self._current_prim.GetPath())
+        prim_path = state.prim_path
 
         # Get variant set to retrieve variant names
-        variant_sets = self._current_prim.GetVariantSets()
-        variant_set = variant_sets.GetVariantSet(self._current_variant_set)
+        variant_sets = prim.GetVariantSets()
+        variant_set = variant_sets.GetVariantSet(state.variant_set)
 
         if not variant_set:
             return
@@ -385,7 +364,7 @@ class ComparisonTab(QtWidgets.QWidget):
             self._thumbnail_manager.request_thumbnail(
                 index,
                 prim_path,
-                self._current_variant_set,
+                state.variant_set,
                 variant_name
             )
 
@@ -414,14 +393,12 @@ class ComparisonTab(QtWidgets.QWidget):
 
     def _get_source_lop_node(self):
         """
-        Get the source LOP node from the main panel's selector.
+        Get the source LOP node from state singleton.
 
         Returns:
             hou.LopNode or None
         """
-        if self._get_source_lop_node_callback:
-            return self._get_source_lop_node_callback()
-        return None
+        return get_state().lop_node
 
     def _on_switch_variant_clicked(self):
         """Handle Switch button click - create a Set Variant node."""

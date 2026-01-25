@@ -10,6 +10,7 @@ except ImportError:
 
 from widgets import CollapsibleFolder, VariantSetRow
 from node_utils import create_set_variant_node, configure_set_variant_node, jump_to_node
+from state import get_state
 
 
 def highlight_prims_in_viewport(prim_paths):
@@ -107,9 +108,10 @@ class InspectorTab(QtWidgets.QWidget):
         self._variant_prims = []
         self._path_to_item = {}  # Map paths to tree items
 
-        # Callback to get source LOP node from main panel (for creating new nodes)
-        self._get_source_lop_node_callback = None
-        
+        # Subscribe to state signals
+        state = get_state()
+        state.stage_changed.connect(self._on_stage_changed)
+
         left_layout.addWidget(self.variant_tree)
 
         splitter.addWidget(left_pane)
@@ -337,6 +339,18 @@ class InspectorTab(QtWidgets.QWidget):
         for i in range(self.variant_tree.topLevelItemCount()):
             filter_item(self.variant_tree.topLevelItem(i))
     
+    def _get_item_path(self, item):
+        """Get the path for a tree item (variant prim or intermediate node)."""
+        prim_data = item.data(0, QtCore.Qt.UserRole)
+        if prim_data and "path" in prim_data:
+            return prim_data["path"]
+        
+        # For intermediate nodes, search in mapping
+        for path, tree_item in self._path_to_item.items():
+            if tree_item is item:
+                return path
+        return None
+    
     def _on_selection_changed(self):
         """Handle selection change in variant tree"""
         selected = self.variant_tree.selectedItems()
@@ -348,44 +362,32 @@ class InspectorTab(QtWidgets.QWidget):
         # Collect prim paths for viewport selection
         prim_paths = []
         for item in selected:
-            prim_data = item.data(0, QtCore.Qt.UserRole)
-            if prim_data and "path" in prim_data:
-                prim_paths.append(prim_data["path"])
-            else:
-                # For intermediate nodes, find the path from _path_to_item
-                for path, tree_item in self._path_to_item.items():
-                    if tree_item is item:
-                        prim_paths.append(path)
-                        break
+            path = self._get_item_path(item)
+            if path:
+                prim_paths.append(path)
 
         # Highlight selected prims in viewport
         if prim_paths:
             highlight_prims_in_viewport(prim_paths)
 
         # Update right pane with selected prim details
-        if count == 1:
+        if count > 0:
             prim_data = variant_items[0].data(0, QtCore.Qt.UserRole)
             self._update_details_pane(prim_data)
-            # Emit signal with the selected prim path
-            self.primPathChanged.emit(prim_data["path"])
+            # Update state with the selected prim path
+            get_state().prim_path = prim_data["path"]
         else: #count == 0
             self._clear_details_pane()
-            # Emit empty string when no selection
-            self.primPathChanged.emit("")
+            # Clear prim path in state
+            get_state().prim_path = ""
     
     def _get_selected_paths(self):
         """Get the list of currently selected prim paths."""
         selected_paths = []
         for item in self.variant_tree.selectedItems():
-            prim_data = item.data(0, QtCore.Qt.UserRole)
-            if prim_data and "path" in prim_data:
-                selected_paths.append(prim_data["path"])
-            else:
-                # For intermediate nodes, find the path from _path_to_item
-                for path, tree_item in self._path_to_item.items():
-                    if tree_item is item:
-                        selected_paths.append(path)
-                        break
+            path = self._get_item_path(item)
+            if path:
+                selected_paths.append(path)
         return selected_paths
     
     def _restore_selection(self, paths):
@@ -405,10 +407,9 @@ class InspectorTab(QtWidgets.QWidget):
         if paths:
             self._on_selection_changed()
     
-    def set_stage(self, stage):
+    def _on_stage_changed(self, stage):
         """
-        Set the USD stage to inspect.
-        This is called by the main panel when the stage changes.
+        Handle stage change from state singleton.
 
         Args:
             stage: A Usd.Stage object or None
@@ -829,23 +830,12 @@ class InspectorTab(QtWidgets.QWidget):
         clipboard = QtWidgets.QApplication.clipboard()
         clipboard.setText(text)
 
-    def set_source_lop_node_callback(self, callback):
-        """
-        Set a callback function that returns the source LOP node to insert after.
-        
-        Args:
-            callback: A callable that returns a hou.LopNode or None
-        """
-        self._get_source_lop_node_callback = callback
-    
     def _get_source_lop_node(self):
         """
         Get the source LOP node to insert new nodes after.
-        Uses the callback from the main panel.
+        Uses the state singleton.
         """
-        if self._get_source_lop_node_callback is not None:
-            return self._get_source_lop_node_callback()
-        return None
+        return get_state().lop_node
 
     def _on_switch_variant_clicked(self):
         """Handle Switch button click - create a Set Variant node."""

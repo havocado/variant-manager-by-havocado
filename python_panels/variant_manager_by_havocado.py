@@ -4,245 +4,10 @@ Designed to match Houdini's parameter pane and Scene Graph Tree conventions
 """
 from PySide6 import QtWidgets, QtCore, QtGui
 
-# Houdini imports - gracefully handle when running outside Houdini
-try:
-    import hou
-    HOU_AVAILABLE = True
-except ImportError:
-    hou = None
-    HOU_AVAILABLE = False
-
 from inspector_tab import InspectorTab
 from comparison_tab import ComparisonTab
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# LOP NODE SELECTOR
-# ═══════════════════════════════════════════════════════════════════════════════
-
-class LOPNodeSelector(QtCore.QObject):
-    """
-    Manages LOP node discovery and stage retrieval for the Variant Manager.
-    Emits signals when the selected node or stage changes.
-    """
-    
-    # Signals
-    nodeChanged = QtCore.Signal(str)           # Emits node path when selection changes
-    stageChanged = QtCore.Signal(object)       # Emits Usd.Stage (or None) when stage changes
-    nodesUpdated = QtCore.Signal(list)         # Emits list of available node paths
-    errorOccurred = QtCore.Signal(str)         # Emits error message
-    
-    def __init__(self, parent=None):
-        super(LOPNodeSelector, self).__init__(parent)
-        self._current_node_path = None
-        self._current_stage = None
-        self._available_nodes = []
-        self._auto_refresh_enabled = False
-        self._event_callback_id = None
-    
-    @property
-    def current_node_path(self):
-        """Returns the currently selected node path."""
-        return self._current_node_path
-    
-    @property
-    def current_stage(self):
-        """Returns the USD stage from the current node."""
-        return self._current_stage
-
-    @property
-    def available_nodes(self):
-        """Returns list of available LOP node paths."""
-        return self._available_nodes
-
-    def get_current_lop_node(self):
-        """
-        Get the current LOP node object.
-
-        Returns:
-            hou.LopNode or None
-        """
-        if not HOU_AVAILABLE or not self._current_node_path:
-            return None
-
-        try:
-            return hou.node(self._current_node_path)
-        except Exception:
-            return None
-    
-    def refresh_node_list(self):
-        """Discover all LOP nodes in the scene that have valid stages."""
-        if not HOU_AVAILABLE:
-            # Return placeholder data for development/testing
-            self._available_nodes = ["/stage/variant", "/stage/render", "/stage/output"]
-            self.nodesUpdated.emit(self._available_nodes)
-            return self._available_nodes
-        
-        nodes = []
-        try:
-            # Find all LOP networks
-            for node in hou.node("/").allSubChildren():
-                if node.type().category().name() == "Lop":
-                    # Check if this node can provide a stage
-                    try:
-                        stage = node.stage()
-                        if stage is not None:
-                            nodes.append(node.path())
-                    except Exception:
-                        # Node exists but can't provide stage (may need cooking)
-                        nodes.append(node.path())
-        except Exception as e:
-            self.errorOccurred.emit(f"Error scanning nodes: {str(e)}")
-        
-        self._available_nodes = sorted(nodes)
-        self.nodesUpdated.emit(self._available_nodes)
-        return self._available_nodes
-    
-    def select_node(self, node_path):
-        """
-        Select a LOP node by path and retrieve its stage.
-        
-        Args:
-            node_path: Full path to the LOP node (e.g., "/stage/variant")
-        
-        Returns:
-            The USD stage if successful, None otherwise
-        """
-        if not node_path:
-            self._current_node_path = None
-            self._current_stage = None
-            self.nodeChanged.emit("")
-            self.stageChanged.emit(None)
-            return None
-        
-        self._current_node_path = node_path
-        self.nodeChanged.emit(node_path)
-        
-        # Get the stage
-        stage = self._get_stage_from_node(node_path)
-        self._current_stage = stage
-        self.stageChanged.emit(stage)
-        
-        return stage
-    
-    def _get_stage_from_node(self, node_path):
-        """Retrieve the USD stage from a LOP node."""
-        if not HOU_AVAILABLE:
-            # Return None for development - tabs should handle gracefully
-            return None
-        
-        try:
-            node = hou.node(node_path)
-            if node is None:
-                self.errorOccurred.emit(f"Node not found: {node_path}")
-                return None
-            
-            # Check if it's a LOP node
-            if node.type().category().name() != "Lop":
-                self.errorOccurred.emit(f"Not a LOP node: {node_path}")
-                return None
-            
-            # Get the stage - this may trigger a cook
-            stage = node.stage()
-            if stage is None:
-                self.errorOccurred.emit(f"No stage available from: {node_path}")
-            
-            return stage
-            
-        except Exception as e:
-            self.errorOccurred.emit(f"Error getting stage: {str(e)}")
-            return None
-    
-    def refresh_current_stage(self):
-        """Re-fetch the stage from the currently selected node."""
-        if self._current_node_path:
-            return self.select_node(self._current_node_path)
-        return None
-    
-    def select_from_network_selection(self):
-        """
-        Auto-select based on current network editor selection.
-        Useful for syncing with user's node selection in Houdini.
-        """
-        if not HOU_AVAILABLE:
-            return None
-        
-        try:
-            selected = hou.selectedNodes()
-            for node in selected:
-                if node.type().category().name() == "Lop":
-                    return self.select_node(node.path())
-        except Exception as e:
-            self.errorOccurred.emit(f"Error reading selection: {str(e)}")
-        
-        return None
-    
-    def enable_auto_refresh(self, enabled=True):
-        """
-        Enable/disable automatic refresh when scene changes.
-        Uses Houdini's event loop callback.
-        """
-        self._auto_refresh_enabled = enabled
-        # Note: Full implementation would hook into hou.ui.addEventLoopCallback()
-        # or use node change callbacks. Simplified for initial implementation.
-
-    def discover_initial_node(self):
-        """
-        Discover and select an initial LOP node from the Houdini context.
-        Tries multiple methods to find a suitable LOP node.
-
-        Returns:
-            hou.LopNode or None
-        """
-        if not HOU_AVAILABLE:
-            return None
-
-        try:
-            # Method 1: Check for selected LOP node
-            selected = hou.selectedNodes()
-            for node in selected:
-                if isinstance(node, hou.LopNode):
-                    self.select_node(node.path())
-                    return node
-
-            # Method 2: Check for displayed LOP node in network editor
-            pane_tabs = hou.ui.paneTabs()
-            for pane in pane_tabs:
-                if pane.type() == hou.paneTabType.NetworkEditor:
-                    pwd = pane.pwd()
-                    if pwd and pwd.childTypeCategory() == hou.lopNodeTypeCategory():
-                        # We're in a LOP network, try to find display node
-                        for child in pwd.children():
-                            if isinstance(child, hou.LopNode) and child.isDisplayFlagSet():
-                                self.select_node(child.path())
-                                return child
-
-            # Method 3: Look for any LOP network and get its output
-            for node in hou.node('/stage').allSubChildren():
-                if isinstance(node, hou.LopNode) and node.isDisplayFlagSet():
-                    self.select_node(node.path())
-                    return node
-        except Exception:
-            pass
-
-        return None
-
-    def jump_to_node(self):
-        """Navigate to the current node in the network editor."""
-        if not HOU_AVAILABLE or not self._current_node_path:
-            return
-        
-        try:
-            node = hou.node(self._current_node_path)
-            if node:
-                # Find a network editor pane and navigate to the node
-                for pane in hou.ui.paneTabs():
-                    if pane.type() == hou.paneTabType.NetworkEditor:
-                        pane.setCurrentNode(node)
-                        pane.homeToSelection()
-                        break
-        except Exception as e:
-            self.errorOccurred.emit(f"Error jumping to node: {str(e)}")
+from state import get_state
+from lop_utils import LOPNodeCoordinator
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -263,7 +28,7 @@ class VariantManagerPanel(QtWidgets.QWidget):
         # ─────────────────────────────────────────────────────────────────────
         # LOP NODE SELECTOR (Core Logic)
         # ─────────────────────────────────────────────────────────────────────
-        self.lop_selector = LOPNodeSelector(self)
+        self.lop_selector = LOPNodeCoordinator(self)
         
         # Main layout
         main_layout = QtWidgets.QVBoxLayout(self)
@@ -365,13 +130,11 @@ class VariantManagerPanel(QtWidgets.QWidget):
         # ─────────────────────────────────────────────────────────────────────
         # Inspector Tab
         self.inspector_tab = InspectorTab()
-        self.inspector_tab.set_source_lop_node_callback(self._get_current_lop_node)
         self.inspector_tab.nodeCreated.connect(self._on_node_created)
         self.tab_widget.addTab(self.inspector_tab, "⚙️ Inspector")
 
         # Comparison Tab
         self.comparison_tab = ComparisonTab()
-        self.comparison_tab.set_get_source_lop_node_callback(self._get_current_lop_node)
         self.comparison_tab.nodeCreated.connect(self._on_node_created)
         self.tab_widget.addTab(self.comparison_tab, "Comparison")
 
@@ -431,13 +194,14 @@ class VariantManagerPanel(QtWidgets.QWidget):
         # ─────────────────────────────────────────────────────────────────────
         # CONNECT SIGNALS
         # ─────────────────────────────────────────────────────────────────────
-        self.lop_selector.nodeChanged.connect(self._on_node_changed)
-        self.lop_selector.stageChanged.connect(self._on_stage_changed)
+        # State signals for UI updates
+        state = get_state()
+        state.lop_node_changed.connect(self._on_lop_node_changed)
+        state.stage_changed.connect(self._on_stage_changed)
+
+        # LOP selector signals for combo box and errors
         self.lop_selector.nodesUpdated.connect(self._on_nodes_updated)
         self.lop_selector.errorOccurred.connect(self._on_error)
-
-        # Connect inspector tab signals
-        self.inspector_tab.primPathChanged.connect(self._on_prim_path_changed)
 
         # Initial population
         self._refresh_node_list()
@@ -455,32 +219,36 @@ class VariantManagerPanel(QtWidgets.QWidget):
 
     def _on_lop_combo_changed(self, text):
         """Handle combo box selection change."""
-        if text and text != self.lop_selector.current_node_path:
-            self.lop_selector.select_node(text)
-    
+        state = get_state()
+        current_path = state.lop_node.path() if state.lop_node else None
+        if text and text != current_path:
+            self.lop_selector.select_lop_node_states(text)
+
     def _on_refresh_clicked(self):
         """Handle refresh button click."""
         import datetime
         self._refresh_node_list()
         self.lop_selector.refresh_current_stage()
         self.time_label.setText("⏱️ " + datetime.datetime.now().strftime("%H:%M:%S"))
-    
-    def _on_node_changed(self, node_path):
-        """Handle node selection change."""
+
+    def _on_lop_node_changed(self, lop_node):
+        """Handle LOP node change from state - update UI."""
+        node_path = lop_node.path() if lop_node else ""
+
         # Update status bar
         if node_path:
             self.status_lop_path_btn.setText(node_path)
         else:
             self.status_lop_path_btn.setText("No node selected")
-        
+
         # Update combo if needed (avoid recursive signal)
         if self.lop_path_combo.currentText() != node_path:
             self.lop_path_combo.blockSignals(True)
-            self.lop_path_combo.setCurrentText(node_path or "")
+            self.lop_path_combo.setCurrentText(node_path)
             self.lop_path_combo.blockSignals(False)
-    
+
     def _on_stage_changed(self, stage):
-        """Handle stage change - notify all tabs."""
+        """Handle stage change from state - update UI."""
         import datetime
         self.time_label.setText("⏱️ " + datetime.datetime.now().strftime("%H:%M:%S"))
 
@@ -493,13 +261,6 @@ class VariantManagerPanel(QtWidgets.QWidget):
                 self.selection_label.setText("? prims")
         else:
             self.selection_label.setText("0 prims")
-
-        # Get the current LOP node for thumbnail generation
-        lop_node = self.lop_selector.get_current_lop_node()
-
-        # Notify tabs with stage and lop_node (single source of truth)
-        self.inspector_tab.set_stage(stage)
-        self.comparison_tab.set_stage(stage, lop_node)
     
     def _on_nodes_updated(self, node_paths):
         """Handle node list update."""
@@ -521,16 +282,6 @@ class VariantManagerPanel(QtWidgets.QWidget):
         """Jump to the current node in the network editor."""
         self.lop_selector.jump_to_node()
     
-    def _get_current_lop_node(self):
-        """
-        Get the currently selected LOP node object.
-        Used as a callback for child widgets that need to create nodes.
-
-        Returns:
-            hou.LopNode or None
-        """
-        return self.lop_selector.get_current_lop_node()
-    
     def _on_node_created(self, node_path):
         """
         Handle when a new node is created by a child widget.
@@ -546,19 +297,7 @@ class VariantManagerPanel(QtWidgets.QWidget):
         self._refresh_node_list()
 
         # Select the new node (this will trigger _on_stage_changed which updates comparison tab)
-        self.lop_selector.select_node(node_path)
-
-    def _on_prim_path_changed(self, prim_path):
-        """
-        Handle when the selected prim path changes in the Inspector tab.
-        Forward the path to the Comparison tab.
-
-        Args:
-            prim_path: The USD prim path string, or empty string for no selection
-        """
-        # Get the current stage from the single source of truth
-        stage = self.lop_selector.current_stage
-        self.comparison_tab.set_prim_path(prim_path, stage)
+        self.lop_selector.select_lop_node_states(node_path)
 
 
 def createInterface():
