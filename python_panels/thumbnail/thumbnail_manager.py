@@ -84,8 +84,6 @@ class ThumbnailManager(QtCore.QObject):
             QPixmap if cached, None if not in cache
         """
         cache_key = f"{prim_path}|{variant_set_name}|{variant_value}"
-        print(f"Looking for cache key: {cache_key}")
-        print(f"Cache contents: {list(self._cache.keys())}")
         return self._cache.get(cache_key)
 
     def cancel_pending(self):
@@ -132,10 +130,7 @@ class ThumbnailManager(QtCore.QObject):
         """
         # Store in cache if cache_key is valid
         if cache_key is not None:
-            print(f"Caching thumbnail with key: {cache_key}")
             self._cache[cache_key] = pixmap
-        
-        print(f"Cache contents after generation: {list(self._cache.keys())}")
 
         # Forward to UI
         self.thumbnail_ready.emit(index, pixmap)
