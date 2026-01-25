@@ -126,8 +126,8 @@ class ComparisonPanelWidget(QtWidgets.QFrame):
         self.variant_label.setAlignment(QtCore.Qt.AlignCenter)
         layout.addWidget(self.variant_label)
 
-        # Thumbnail display (replaces viewport placeholder)
-        self.thumbnail_label = QtWidgets.QLabel("[Viewport]")
+        # Thumbnail display
+        self.thumbnail_label = QtWidgets.QLabel("Click [Preview] button")
         self.thumbnail_label.setMinimumSize(150, 120)
         self.thumbnail_label.setAlignment(QtCore.Qt.AlignCenter)
         self.thumbnail_label.setFrameStyle(QtWidgets.QFrame.Box | QtWidgets.QFrame.Plain)
@@ -174,6 +174,8 @@ class ComparisonPanelWidget(QtWidgets.QFrame):
         if pixmap and not pixmap.isNull():
             # Scale pixmap to fit while preserving aspect ratio
             label_size = self.thumbnail_label.size()
+            #print label and pixmap size
+            print(f"Label size: {label_size}, Pixmap size: {pixmap.size()}")
             scaled_pixmap = pixmap.scaled(
                 label_size,
                 QtCore.Qt.KeepAspectRatio,
@@ -182,7 +184,7 @@ class ComparisonPanelWidget(QtWidgets.QFrame):
             self.thumbnail_label.setPixmap(scaled_pixmap)
         else:
             self.thumbnail_label.clear()
-            self.thumbnail_label.setText("[Viewport]")
+            self.thumbnail_label.setText("Click [Preview] button")
 
     def set_loading(self):
         """Show loading state for thumbnail."""
