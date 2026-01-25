@@ -177,16 +177,11 @@ class ComparisonTab(QtWidgets.QWidget):
         Args:
             lop_node: A hou.LopNode object or None
         """
-        # Clean up existing thumbnail manager
         if self._thumbnail_manager:
-            try:
-                self._thumbnail_manager.cleanup()
-            except:
-                pass
-            self._thumbnail_manager = None
-
-        # Initialize new thumbnail manager if we have a LOP node
-        if lop_node:
+            # Update existing manager (preserves cache)
+            self._thumbnail_manager.update_source_node(lop_node)
+        elif lop_node:
+            # Initialize new thumbnail manager
             try:
                 self._thumbnail_manager = ThumbnailManager(lop_node, parent=self)
                 self._thumbnail_manager.thumbnail_ready.connect(self._on_thumbnail_ready)
@@ -288,7 +283,18 @@ class ComparisonTab(QtWidgets.QWidget):
         # Create a panel for each variant
         for variant_name in variant_names:
             panel = ComparisonPanelWidget(variant_name)
-            panel.set_loading()  # Show loading state initially
+
+            # Check cache for existing thumbnail (don't generate if not cached)
+            cached_pixmap = None
+            if self._thumbnail_manager and prim_path and variant_set_name:
+                cached_pixmap = self._thumbnail_manager.get_cached_thumbnail(
+                    prim_path, variant_set_name, variant_name
+                )
+
+            if cached_pixmap:
+                panel.set_thumbnail(cached_pixmap)
+            else:
+                panel.set_loading()  # Show loading state if not cached
 
             # Set variant context for the switch button
             if prim_path and variant_set_name:
@@ -344,13 +350,14 @@ class ComparisonTab(QtWidgets.QWidget):
 
         variant_names = variant_set.GetVariantNames()
 
-        # Request thumbnails for all panels
+        # Request thumbnails for all panels (force regenerate since user clicked button)
         for index, variant_name in enumerate(variant_names):
             self._thumbnail_manager.request_thumbnail(
                 index,
                 prim_path,
                 state.variant_set,
-                variant_name
+                variant_name,
+                force_regenerate=True
             )
 
     def _on_thumbnail_ready(self, index, pixmap):

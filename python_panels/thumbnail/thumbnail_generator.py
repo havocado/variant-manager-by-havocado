@@ -42,7 +42,7 @@ class ThumbnailGenerator(QtCore.QObject):
         self._timer.timeout.connect(self._generate_next)
         self._timer.setSingleShot(True)
 
-    def queue_item(self, index, prim_path, variant_set_name, variant_value, cache_key):
+    def queue_item(self, index, prim_path, variant_set_name, variant_value, cache_key, skip_duplicate_check=False):
         """
         Add a thumbnail generation request to the queue.
 
@@ -51,14 +51,16 @@ class ThumbnailGenerator(QtCore.QObject):
             prim_path: USD prim path
             variant_set_name: Name of the variant set
             variant_value: Variant value to apply
-            cache_key: Unique cache key for this variant combination
+            cache_key: Unique cache key for this variant combination.
+            skip_duplicate_check: If True, skip duplicate check and always queue.
         """
         request = (index, prim_path, variant_set_name, variant_value, cache_key)
 
-        # Don't queue duplicates (same cache_key)
-        for queued_item in self._queue:
-            if queued_item[4] == cache_key:  # Check cache_key
-                return
+        # Don't queue duplicates (same cache_key), unless skip_duplicate_check is True
+        if not skip_duplicate_check:
+            for queued_item in self._queue:
+                if queued_item[4] == cache_key:  # Check cache_key
+                    return
 
         self._queue.append(request)
 
