@@ -226,6 +226,9 @@ class InspectorTab(QtWidgets.QWidget):
         splitter.setSizes([300, 700])
 
         layout.addWidget(splitter)
+
+        # Clear details pane on initialization to show placeholder
+        self._clear_details_pane()
     
     
     def _rebuild_list(self):
