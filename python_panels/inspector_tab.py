@@ -8,7 +8,7 @@ try:
 except ImportError:
     hou = None
 
-from widgets import VariantSetRow, SimpleSection, SwitchVariantButton
+from widgets import SimpleSection, SwitchVariantButton
 from node_utils import create_set_variant_node, configure_set_variant_node, jump_to_node
 from state import get_state
 
