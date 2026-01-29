@@ -177,14 +177,19 @@ class VariantManagerPanel(QtWidgets.QWidget):
     
     def _on_nodes_updated(self, node_paths):
         """Handle node list update."""
-        # Update combo box
-        current = self.lop_path_combo.currentText()
+        old_text = self.lop_path_combo.currentText()
+
         self.lop_path_combo.blockSignals(True)
         self.lop_path_combo.clear()
         self.lop_path_combo.addItems(node_paths)
-        if current in node_paths:
-            self.lop_path_combo.setCurrentText(current)
+        if old_text in node_paths:
+            self.lop_path_combo.setCurrentText(old_text)
         self.lop_path_combo.blockSignals(False)
+
+        # If selection changed due to population, manually trigger handler
+        new_text = self.lop_path_combo.currentText()
+        if new_text != old_text:
+            self._on_lop_combo_changed(new_text)
     
     def _on_error(self, message):
         """Handle error from LOP selector."""
