@@ -138,9 +138,7 @@ class VariantManagerPanel(QtWidgets.QWidget):
 
     def _on_lop_combo_changed(self, text):
         """Callback for signal currentTextChanged (lop_path_combo)."""
-        state = get_state()
-        current_path = state.lop_node.path() if state.lop_node else None
-        if text and text != current_path:
+        if text:
             self.lop_selector.select_lop_node_states(text)
 
     def _on_refresh_clicked(self):
