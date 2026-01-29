@@ -2,7 +2,7 @@
 
 Visual USD variant management for Houdini.
 
-
+(todo: write description)
 
 (TODO: fill this with screenshots)
 
@@ -18,30 +18,25 @@ There are a few steps to make! Sorry, this is the simplest method to install an 
 
 ### Step 1: Download
 
-Download the latest release:
-- Go to the [Releases page](https://github.com/havocado/variant-manager-by-havocado/releases)
-- Download `variant-manager-by-havocado-vX.X.X.zip`
-- Extract the zip file
+Go to the [Releases page](https://github.com/havocado/variant-manager-by-havocado/releases) and download `variant-manager-by-havocado-vX.X.X.zip`
 
-You should see a folder called `variant-manager-by-havocado`
-
-### Step 2: Find Houdini Packages Folder
+### Step 2: Find the houdini packages folder
 
 Find your Houdini preferences folder. For example:
 
 **Windows:**
 ```
-C:\Users\YourName\Documents\houdini19.5\
+C:\Users\YourName\Documents\houdini19.5\packages\
 ```
 
 **Mac:**
 ```
-/Users/YourName/houdini19.5/
+/Users/YourName/houdini19.5/packages/
 ```
 
 **Linux:**
 ```
-/home/YourName/houdini19.5/
+/home/YourName/houdini19.5/packages/
 ```
 
 Replace `19.5` with your Houdini version:
@@ -50,7 +45,7 @@ Replace `19.5` with your Houdini version:
 - Houdini 20.5 → `houdini20.5`
 - Houdini 21.0 → `houdini21.0`
 
-Then add find a folder **`packages`**. If it doesn't exist, **create it**.
+If **`packages`** doesn't exist in the path, just create it. It is safe to create the folder.
 
 ### Checklist before moving on to the next step:
 
