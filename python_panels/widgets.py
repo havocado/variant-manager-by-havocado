@@ -5,6 +5,26 @@ from PySide6 import QtWidgets, QtCore, QtGui
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# LOP PATH COMBOBOX
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class LOPPathComboBox(QtWidgets.QComboBox):
+    """ComboBox that signals before showing popup, allowing refresh."""
+    aboutToShowPopup = QtCore.Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setMinimumWidth(140)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        self.setEditable(True)
+        self.lineEdit().setPlaceholderText("Select LOP node...")
+
+    def showPopup(self):
+        self.aboutToShowPopup.emit()
+        super().showPopup()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # SWITCH VARIANT BUTTON
 # ═══════════════════════════════════════════════════════════════════════════════
 
