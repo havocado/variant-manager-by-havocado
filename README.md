@@ -1,57 +1,69 @@
 # Variant Manager by havocado
 
-Visual USD variant management for Houdini with automated contact sheet generation.
+Visual USD variant management for Houdini.
 
-(TODO: Screenshots)
+
+
+(TODO: fill this with screenshots)
 
 ## Requirements
 
 - **Houdini 19.5 or newer** (any license)
 
+The development was done on Houdini 21.0, but it should be compatible with any versions 19.5+.
+
 ## Installation
+
+There are a few steps to make! Sorry, this is the simplest method to install an unofficial Python Panel.
 
 ### Step 1: Download
 
 Download the latest release:
-- Go to the [Releases page](https://github.com/yourusername/variant-manager-by-havocado/releases)
+- Go to the [Releases page](https://github.com/havocado/variant-manager-by-havocado/releases)
 - Download `variant-manager-by-havocado-vX.X.X.zip`
 - Extract the zip file
 
 You should see a folder called `variant-manager-by-havocado`
 
-### Step 2: Find Your Houdini Folder
+### Step 2: Find Houdini Packages Folder
 
-Open your Houdini preferences folder:
+Find your Houdini preferences folder. For example:
 
 **Windows:**
 ```
-C:\Users\YourName\Documents\houdini21.0\
+C:\Users\YourName\Documents\houdini19.5\
 ```
 
 **Mac:**
 ```
-/Users/YourName/houdini21.0/
+/Users/YourName/houdini19.5/
 ```
 
 **Linux:**
 ```
-/home/YourName/houdini21.0/
+/home/YourName/houdini19.5/
 ```
 
-**Important:** Replace `21.0` with your Houdini version:
+Replace `19.5` with your Houdini version:
 - Houdini 19.5 → `houdini19.5`
 - Houdini 20.0 → `houdini20.0`
 - Houdini 20.5 → `houdini20.5`
 - Houdini 21.0 → `houdini21.0`
 
-### Step 3: Install the Tool
+Then add find a folder **`packages`**. If it doesn't exist, **create it**.
 
-1. Inside your Houdini folder, look for a folder called **`packages`**
-   - If it doesn't exist, **create it**
+### Checklist before moving on to the next step:
 
-2. Copy the **entire** `variant-manager-by-havocado` folder somewhere on your computer (e.g., `D:\Assets\Houdini Packages\`)
+- [ ] Downloaded `variant-manager-by-havocado-vX.X.X.zip`
+- [ ] Found the folder `/path/to/houdiniXX.X/packages` (or created one)
 
-3. Copy **only** the `variant-manager-by-havocado.json` file into the `packages` folder
+
+### Step 3: Extract files
+
+
+1. Extract the `variant-manager-by-havocado.zip` somewhere on your computer (e.g., `D:\Assets\Houdini Packages\`, or wherever you want)
+
+3. Copy **only** the `variant-manager-by-havocado.json` file into the `packages` folder. (Copy only, don't delete the extracted folder!)
 
 4. Edit the `variant-manager-by-havocado.json` file and change the `VARIANT_MANAGER` path to match where you placed the tool folder:
 
@@ -64,14 +76,16 @@ C:\Users\YourName\Documents\houdini21.0\
 	"enable": true,
 	"env": [
 		{
-			"VARIANT_MANAGER": "D:/Assets/Houdini Packages/variant-manager-by-havocado"
+			"VARIANT_MANAGER": "change/this/path/to/variant-manager-by-havocado"
 		}
 	],
 	"path": "$VARIANT_MANAGER"
 }
 ```
 
-**Note:** Use forward slashes `/` in the path, even on Windows.
+- [ ] Make sure the path ends with `/variant-manager-by-havocado`
+
+- [ ] Use forward slashes `/` in the path, even on Windows.
 
 **Your final structure should look like this:**
 ```
@@ -82,13 +96,13 @@ houdini21.0/
 D:/Assets/Houdini Packages/   (or wherever you chose)
 └── variant-manager-by-havocado/
     ├── python_panels/
-    └── ...
+    ├── README.md
+    └── variant-manager-by-havocado.json
 ```
 
 ### Step 4: Restart Houdini
 
-1. **Close Houdini completely** (if it's running)
-2. **Start Houdini**
+Restart Houdini.
 
 ### Step 5: Open the Panel
 
@@ -98,21 +112,7 @@ D:/Assets/Houdini Packages/   (or wherever you chose)
 
 The panel should open showing "Variant Manager by havocado"
 
----
-
-## Upcoming Features (not implemented)
-
-### Variant Management
-- Create variant sets visually
-- Add/remove variants with a click
-- Switch between variants in real-time
-- No Python scripting needed
-
-### Contact Sheets
-- Generate review sheets automatically
-- Capture all variants at once
-- Professional layouts with metadata
-- Export as PNG for easy sharing
+(todo: gif here)
 
 ---
 
@@ -129,33 +129,6 @@ The panel should open showing "Variant Manager by havocado"
    - Use forward slashes `/` even on Windows
 4. Does the `packages` folder exist?
 
-**Fix:** Make sure the JSON file points to the correct location of the tool folder, then restart Houdini.
-
-### "No Prim Selected" Error
-
-You need to be in **Solaris** (LOP context) and select a valid USD prim path.
-
-**Fix:**
-1. Create or load a USD asset in Solaris
-2. Enter the prim path (like `/sphere1`) in the panel
-3. Click "Select"
-
-### Panel Shows Up But Gives Errors
-
-**Fix:** 
-1. Check both files exist:
-   - `python_panels/variant_manager_by_havocado.py`
-   - `python_panels/variant_manager_by_havocado.pypanel`
-2. Make sure they're inside the package folder
-3. Restart Houdini
-
-### Contact Sheets Don't Generate
-
-Make sure:
-- You have variants created
-- The viewport is visible (not minimized)
-- You're in Solaris context
-
 ---
 
 ## Uninstalling
@@ -167,36 +140,4 @@ To remove the tool:
    - `~/houdini21.0/packages/variant-manager-by-havocado.json`
 3. Delete the tool folder from wherever you installed it
 4. Restart Houdini
-
-Done! The tool is completely removed.
-
----
-
-## Updates
-
-### Checking for Updates
-
-1. Go to the [Releases page](https://github.com/yourusername/variant-manager-by-havocado/releases)
-2. Check the version number
-3. If there's a new version, download it
-
-### Installing Updates
-
-1. **Replace the tool folder** with the new version (wherever you installed it)
-2. **Restart Houdini**
-
-The JSON file in packages can stay the same as long as you keep the tool in the same location.
-
-Your settings and preferences will be preserved.
-
----
-
-## Credits
-
-**Built with:** Python, PySide6
-
-
-## Version
-
-**Compatible with:** Houdini 19.5+
 

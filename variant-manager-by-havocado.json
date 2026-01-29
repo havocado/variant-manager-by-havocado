@@ -6,7 +6,7 @@
 	"enable": true,
 	"env": [
 		{
-			"VARIANT_MANAGER": "path/to/variant-manager-by-havocado"
+			"VARIANT_MANAGER": "change/this/path/to/variant-manager-by-havocado"
 		}
 	],
 	"path": "$VARIANT_MANAGER"
