@@ -88,7 +88,7 @@ Restart Houdini.
 
 ---
 
-You are all set! Move on to Tutorial.md (todo: link) to get started.
+You are all set! Move on to [Tutorial.md](Tutorial.md) to get started.
 
 ---
 

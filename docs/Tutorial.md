@@ -35,7 +35,7 @@ Import is success if you see the kitchen in the viewport. Make sure you are insi
 
 ## 1. Install the tool
 
-Follow the installation guide: (todo: link)
+Follow the installation guide: [How-to-install.md](How-to-install.md)
 
 From one of the panels, click on the + button to import: New Pane Type >> Misc >> Python Panel.
 
