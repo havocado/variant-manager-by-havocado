@@ -1,8 +1,15 @@
-<img width="1318" height="964" alt="image" src="https://github.com/user-attachments/assets/57024fcf-5e81-4a03-8dc5-2a650f7ce79a" /># How to use the Variant Manager
+# How to use the Variant Manager
 
 Table of contents:
 
-(todo: add table of contents)
+- [0. Test scene setup](#0-test-scene-setup)
+  - [0-1. Set up Houdini Solaris](#0-1-set-up-houdini-solaris)
+- [1. Install the tool](#1-install-the-tool)
+  - [Troubleshooting - Panel Doesn't Appear in Menu](#troubleshooting---panel-doesnt-appear-in-menu)
+- [2. Choosing the LOP node path](#2-choosing-the-lop-node-path)
+- [3. Scene graph](#3-scene-graph)
+- [4. Quick Switch Variant](#4-quick-switch-variant)
+- [5. Variants Preview](#5-variants-preview)
 
 ## 0. Test scene setup
 
@@ -41,6 +48,16 @@ Click on the dropdown and select **Variant Manager by havocado.**
 Success if you see the tool loaded.
 
 <img width="1459" height="955" alt="scene_setup_5_success" src="https://github.com/user-attachments/assets/eebade60-94d4-497f-9255-5b0deb669366" />
+
+### Troubleshooting - Panel Doesn't Appear in Menu
+
+1. Did you restart Houdini after installing?
+2. Is the JSON file in the right place?
+   - Should be: `houdini21.0/packages/variant-manager-by-havocado.json`
+3. Is the `VARIANT_MANAGER` path correct in the JSON file?
+   - Open the JSON and verify the path points to the actual tool folder
+   - Use forward slashes `/` even on Windows
+4. Does the `packages` folder exist?
 
 ## 2. Choosing the LOP node path
 
