@@ -27,3 +27,11 @@ This tool is for you if...
 - **Houdini 19.5 or newer** (any license)
 
 The development was done on Houdini 21.0, but it should be compatible with any versions 19.5+.
+
+## Installation
+
+See [How-to-install.md](docs/How-to-install.md) for setup instructions.
+
+## Tutorial
+
+See [Tutorial.md](docs/Tutorial.md) to get started.
