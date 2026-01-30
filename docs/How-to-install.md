@@ -54,14 +54,10 @@ If **`packages`** doesn't exist in the path, just create it. It is safe to creat
 
 ```json
 {
-	"name": "variant-manager-by-havocado",
-	"version": "1.0.0",
-	"description": "USD Variant Manager by havocado",
-	"author": "Hailey Ahn",
-	"enable": true,
+	"..."
 	"env": [
 		{
-			"VARIANT_MANAGER": "change/this/path/to/variant-manager-by-havocado"
+			"VARIANT_MANAGER": "change/this/path/to/variant-manager-by-havocado" <------- Change this!!
 		}
 	],
 	"path": "$VARIANT_MANAGER"
