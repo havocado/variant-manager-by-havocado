@@ -1,5 +1,8 @@
 # Variant Manager by havocado
 
+![readme_preview_2](https://github.com/user-attachments/assets/9bd7b403-2052-43e1-808a-88038d70ffbd)
+
+
 > *What did variant B look like again?*
 
 **Variant Manager by havocado** is a visual browser for USD variants in **Houdini Solaris**. See thumbnail previews of all variants side-by-side, compare them at a glance, and switch with one click. The tool handles all the LOP node creation behind the scenes.
