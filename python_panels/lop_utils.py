@@ -33,6 +33,12 @@ class LOPNodeCoordinator(QtCore.QObject):
             # Find all LOP networks
             for node in hou.node("/").allSubChildren():
                 if node.type().category().name() == "Lop":
+                    # Filter out nodes inside locked HDAs
+                    if node.isInsideLockedHDA():
+                        continue
+                    # Filter out internal thumbnail generator nodes
+                    if "_thumbnail_generator_internal" in node.name():
+                        continue
                     # Check if this node can provide a stage
                     try:
                         stage = node.stage()

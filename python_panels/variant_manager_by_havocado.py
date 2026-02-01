@@ -2,12 +2,13 @@
 Variant Manager by havocado - USD Variant Inspector Panel for Houdini
 Designed to match Houdini's parameter pane and Scene Graph Tree conventions
 """
-from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6 import QtWidgets
 
 from inspector_tab import InspectorTab
 from comparison_tab import ComparisonTab
 from state import get_state
 from lop_utils import LOPNodeCoordinator
+from widgets import LOPPathComboBox
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -41,32 +42,26 @@ class VariantManagerPanel(QtWidgets.QWidget):
         self.tab_widget = QtWidgets.QTabWidget()
         
         # ─────────────────────────────────────────────────────────────────────
-        # SHELF TOOLBAR
+        # LOP SELECTOR BAR
         # ─────────────────────────────────────────────────────────────────────
-        shelf_toolbar = QtWidgets.QToolBar()
-        shelf_toolbar.setMovable(False)
-        shelf_toolbar.setIconSize(QtCore.QSize(20, 20))
-        
-        # Left-aligned tools
-        # LOP path label and combobox
-        lop_label = QtWidgets.QLabel("Select LOP: ")
-        lop_label.setMouseTracking(True)
+        lop_bar = QtWidgets.QWidget()
+        lop_bar_layout = QtWidgets.QHBoxLayout(lop_bar)
+        lop_bar_layout.setContentsMargins(4, 4, 4, 4)
+        lop_bar_layout.setSpacing(6)
+
+        lop_label = QtWidgets.QLabel("Select LOP:")
         lop_label.setToolTip("Choose a LOP node to inspect its USD stage.\n\n"
                              "LOP (Lighting Operator) nodes build and modify USD stages.\n"
                              "Select a node downstream in your network to see the\n"
                              "cumulative result of all upstream operations.")
-        shelf_toolbar.addWidget(lop_label)
-        
-        self.lop_path_combo = QtWidgets.QComboBox()
-        self.lop_path_combo.setMinimumWidth(140)
-        self.lop_path_combo.setEditable(True)  # Allow manual path entry
-        self.lop_path_combo.lineEdit().setPlaceholderText("Select LOP node...")
+        lop_bar_layout.addWidget(lop_label)
+
+        self.lop_path_combo = LOPPathComboBox()
         self.lop_path_combo.currentTextChanged.connect(self._on_lop_combo_changed)
-        shelf_toolbar.addWidget(self.lop_path_combo)
-        
-        shelf_toolbar.addSeparator()
-        
-        main_layout.addWidget(shelf_toolbar)
+        self.lop_path_combo.aboutToShowPopup.connect(self._refresh_node_list)
+        lop_bar_layout.addWidget(self.lop_path_combo)
+
+        main_layout.addWidget(lop_bar)
         
         # ─────────────────────────────────────────────────────────────────────
         # TABS
@@ -143,9 +138,7 @@ class VariantManagerPanel(QtWidgets.QWidget):
 
     def _on_lop_combo_changed(self, text):
         """Callback for signal currentTextChanged (lop_path_combo)."""
-        state = get_state()
-        current_path = state.lop_node.path() if state.lop_node else None
-        if text and text != current_path:
+        if text:
             self.lop_selector.select_lop_node_states(text)
 
     def _on_refresh_clicked(self):
@@ -184,14 +177,19 @@ class VariantManagerPanel(QtWidgets.QWidget):
     
     def _on_nodes_updated(self, node_paths):
         """Handle node list update."""
-        # Update combo box
-        current = self.lop_path_combo.currentText()
+        old_text = self.lop_path_combo.currentText()
+
         self.lop_path_combo.blockSignals(True)
         self.lop_path_combo.clear()
         self.lop_path_combo.addItems(node_paths)
-        if current in node_paths:
-            self.lop_path_combo.setCurrentText(current)
+        if old_text in node_paths:
+            self.lop_path_combo.setCurrentText(old_text)
         self.lop_path_combo.blockSignals(False)
+
+        # If selection changed due to population, manually trigger handler
+        new_text = self.lop_path_combo.currentText()
+        if new_text != old_text:
+            self._on_lop_combo_changed(new_text)
     
     def _on_error(self, message):
         """Handle error from LOP selector."""
