@@ -1,4 +1,4 @@
-<img width="769" height="508" alt="tutorial_2_lop_dropdown" src="https://github.com/user-attachments/assets/59c4573d-1de7-490b-a840-f351874872a7" /># How to use the Variant Manager
+# How to use the Variant Manager
 
 Table of contents:
 
@@ -108,4 +108,5 @@ That's it for v1.0! Please report any bugs to [github issues](https://github.com
 
 **Auto Turntables export**
 - I think this would be nice. Auto generate all variants turntables in 1-click! But it won't be done very soon, there will be a lot of configs to deal with.
+
 
