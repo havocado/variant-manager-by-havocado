@@ -86,6 +86,9 @@ class ThumbnailGenerator(QtCore.QObject):
 
         temp_file = None
         try:
+            if not self.viewport_service:
+                raise CaptureException("Viewport capture service is not available")
+
             # Capture thumbnail
             temp_file = self.viewport_service.capture(
                 prim_path,

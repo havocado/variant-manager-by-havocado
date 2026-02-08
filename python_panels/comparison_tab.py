@@ -4,7 +4,7 @@ Comparison Tab for Variant Manager by havocado
 from PySide6 import QtWidgets, QtCore, QtGui
 
 from widgets import ComparisonPanelWidget
-from node_utils import create_set_variant_node, configure_set_variant_node, jump_to_node
+from node_utils import create_set_variant_node, configure_set_variant_node, jump_to_node, is_node_valid
 from state import get_state
 
 from thumbnail import ThumbnailManager
@@ -189,10 +189,11 @@ class ComparisonTab(QtWidgets.QWidget):
         Args:
             lop_node: A hou.LopNode object or None
         """
+        valid_node = lop_node if is_node_valid(lop_node) else None
         if self._thumbnail_manager:
             # Update existing manager (preserves cache)
-            self._thumbnail_manager.update_source_node(lop_node)
-        elif lop_node:
+            self._thumbnail_manager.update_source_node(valid_node)
+        elif valid_node:
             # Initialize new thumbnail manager
             try:
                 self._thumbnail_manager = ThumbnailManager(lop_node, parent=self)
@@ -433,7 +434,7 @@ class ComparisonTab(QtWidgets.QWidget):
 
         # Get the source LOP node from the main panel's selector
         source_node = self._get_source_lop_node()
-        if source_node is None:
+        if not is_node_valid(source_node):
             print("No LOP node selected in the panel")
             return
 

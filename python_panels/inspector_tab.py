@@ -9,7 +9,7 @@ except ImportError:
     hou = None
 
 from widgets import SimpleSection, SwitchVariantButton
-from node_utils import create_set_variant_node, configure_set_variant_node, jump_to_node
+from node_utils import create_set_variant_node, configure_set_variant_node, jump_to_node, is_node_valid
 from state import get_state
 
 
@@ -845,7 +845,7 @@ class InspectorTab(QtWidgets.QWidget):
         
         # Get the source LOP node from the main panel's selector
         source_node = self._get_source_lop_node()
-        if source_node is None:
+        if not is_node_valid(source_node):
             print("No LOP node selected in the panel")
             return
         

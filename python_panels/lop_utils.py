@@ -5,6 +5,7 @@ import hou
 from PySide6 import QtCore
 
 from state import get_state
+from node_utils import is_node_valid
 
 
 class LOPNodeCoordinator(QtCore.QObject):
@@ -100,7 +101,7 @@ class LOPNodeCoordinator(QtCore.QObject):
     def refresh_current_stage(self):
         """Re-fetch the stage from the currently selected node."""
         state = get_state()
-        if state.lop_node:
+        if is_node_valid(state.lop_node):
             return self.select_lop_node_states(state.lop_node.path())
         return None
 
@@ -160,7 +161,7 @@ class LOPNodeCoordinator(QtCore.QObject):
     def jump_to_node(self):
         """Navigate to the current node in the network editor."""
         state = get_state()
-        if not state.lop_node:
+        if not is_node_valid(state.lop_node):
             return
 
         try:
