@@ -6,6 +6,7 @@ from PySide6 import QtCore, QtGui
 
 from .viewport_capture import ViewportCaptureService, CaptureException
 from .thumbnail_generator import ThumbnailGenerator
+from node_utils import is_node_valid
 
 
 class ThumbnailManager(QtCore.QObject):
@@ -108,9 +109,10 @@ class ThumbnailManager(QtCore.QObject):
         if self._viewport_service:
             self._viewport_service.cleanup()
             self._viewport_service = None
+            self._generator.viewport_service = None
 
         # Create new viewport service with new node
-        if source_lop_node:
+        if is_node_valid(source_lop_node):
             try:
                 self._viewport_service = ViewportCaptureService(source_lop_node)
                 self._generator.viewport_service = self._viewport_service

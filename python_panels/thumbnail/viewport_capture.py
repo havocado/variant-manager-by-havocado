@@ -8,7 +8,7 @@ import tempfile
 import hou
 from husd import assetutils
 
-from node_utils import create_set_variant_node, configure_set_variant_node
+from node_utils import create_set_variant_node, configure_set_variant_node, is_node_valid
 
 
 class CaptureException(Exception):
@@ -69,6 +69,40 @@ class ViewportCaptureService:
             raise RuntimeError(f"Failed to initialize viewport capture service: {e}")
 
 
+    def _ensure_ready(self):
+        """
+        Ensure the capture service is ready: variant node exists and temp directory is set.
+
+        Recreates either if they were lost (e.g., node deleted, cleanup called).
+
+        Raises:
+            CaptureException: If the source node is gone (unrecoverable) or recreation fails.
+        """
+        # Check source node first — if it's gone, nothing can be recovered
+        if not is_node_valid(self.source_lop_node):
+            raise CaptureException("Source LOP node has been deleted — cannot recover")
+
+        # Ensure variant node
+        if not is_node_valid(self.variant_node):
+            self.variant_node = None
+            try:
+                self.variant_node = create_set_variant_node(
+                    self.source_lop_node,
+                    node_name="_thumbnail_generator_internal"
+                )
+            except Exception as e:
+                raise CaptureException(f"Failed to recreate setvariant node: {e}")
+            if self.variant_node is None:
+                raise CaptureException("Failed to recreate setvariant node")
+
+        # Ensure temp directory
+        if self.temp_directory is None:
+            self.temp_directory = os.path.join(
+                tempfile.gettempdir(),
+                f"houdini_variant_thumbs_{os.getpid()}"
+            )
+            os.makedirs(self.temp_directory, exist_ok=True)
+
     def capture(self, prim_path, variant_set_name, variant_value):
         """
         Capture a thumbnail for the specified variant using the main viewport.
@@ -84,8 +118,7 @@ class ViewportCaptureService:
         Raises:
             CaptureException: If capture fails
         """
-        if not self.variant_node:
-            raise CaptureException("Viewport capture service not properly initialized")
+        self._ensure_ready()
 
         try:
             # Configure the setvariant node with the desired variant

@@ -9,6 +9,7 @@ from comparison_tab import ComparisonTab
 from state import get_state
 from lop_utils import LOPNodeCoordinator
 from widgets import LOPPathComboBox
+from node_utils import is_node_valid
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -148,7 +149,7 @@ class VariantManagerPanel(QtWidgets.QWidget):
 
     def _on_lop_node_changed(self, lop_node):
         """Callback for signal lop_node_changed."""
-        node_path = lop_node.path() if lop_node else ""
+        node_path = lop_node.path() if is_node_valid(lop_node) else ""
 
         # Update status bar
         if node_path:

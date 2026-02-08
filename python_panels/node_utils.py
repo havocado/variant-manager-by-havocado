@@ -11,6 +11,29 @@ except ImportError:
     HOU_AVAILABLE = False
 
 
+def is_node_valid(node):
+    """
+    Check if a Houdini node reference is alive and usable.
+
+    A deleted node is not None but throws hou.ObjectWasDeleted on access.
+
+    Args:
+        node: A Houdini node reference, or None.
+
+    Returns:
+        True if the node is not None and still exists in Houdini.
+    """
+    if node is None:
+        return False
+    if not HOU_AVAILABLE:
+        return False
+    try:
+        node.path()
+        return True
+    except hou.ObjectWasDeleted:
+        return False
+
+
 def create_set_variant_node(lop_node, node_name=None):
     """
     Create a Set Variant LOP node after the specified LOP node.
@@ -30,14 +53,8 @@ def create_set_variant_node(lop_node, node_name=None):
     if not HOU_AVAILABLE:
         raise RuntimeError("Houdini is not available")
     
-    if lop_node is None:
-        raise ValueError("lop_node cannot be None")
-    
-    # Check node validity - try to access the node's path
-    try:
-        _ = lop_node.path()
-    except hou.ObjectWasDeleted:
-        raise ValueError("lop_node is no longer valid (was deleted)")
+    if not is_node_valid(lop_node):
+        raise ValueError("lop_node is None or no longer valid")
     
     # Get the parent network
     parent_network = lop_node.parent()
@@ -92,13 +109,7 @@ def configure_set_variant_node(node, prim_path, variant_set_name, variant_select
     if not HOU_AVAILABLE:
         return False
     
-    if node is None:
-        return False
-    
-    # Check node validity
-    try:
-        _ = node.path()
-    except hou.ObjectWasDeleted:
+    if not is_node_valid(node):
         return False
     
     try:
