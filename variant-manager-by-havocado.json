@@ -1,6 +1,6 @@
 {
 	"name": "variant-manager-by-havocado",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "USD Variant Manager by havocado",
 	"author": "Hailey Ahn",
 	"enable": true,
